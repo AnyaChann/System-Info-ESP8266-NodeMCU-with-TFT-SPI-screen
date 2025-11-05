@@ -7,7 +7,7 @@
 
 NetworkManager::NetworkManager(const char* wifiSsid, const char* wifiPass, String serverURL, unsigned long interval)
   : ssid(wifiSsid), password(wifiPass), serverUrl(serverURL), 
-    updateInterval(interval), lastUpdate(0) {}
+    lastUpdate(0), updateInterval(interval) {}
 
 bool NetworkManager::connectWiFi(int maxAttempts) {
   WiFi.begin(ssid, password);
@@ -15,19 +15,21 @@ bool NetworkManager::connectWiFi(int maxAttempts) {
   
   while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {
     delay(500);
-    Serial.print(".");
     attempts++;
   }
   
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi connected!");
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-    return true;
-  }
+  bool connected = (WiFi.status() == WL_CONNECTED);
   
-  Serial.println("\nWiFi failed!");
-  return false;
+  #ifdef DEBUG_NETWORK
+  if (connected) {
+    Serial.print(F("WiFi connected! IP: "));
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println(F("WiFi connection failed!"));
+  }
+  #endif
+  
+  return connected;
 }
 
 bool NetworkManager::isConnected() {
@@ -35,9 +37,8 @@ bool NetworkManager::isConnected() {
 }
 
 void NetworkManager::reconnect() {
-  Serial.println("WiFi lost! Reconnecting...");
   WiFi.reconnect();
-  delay(5000);
+  delay(3000);
 }
 
 bool NetworkManager::fetchSystemData(SystemData& data) {
@@ -98,14 +99,18 @@ bool NetworkManager::fetchSystemData(SystemData& data) {
       
       data.hasData = true;
       success = true;
-      Serial.println("Data updated!");
     } else {
-      Serial.println("JSON parse error!");
       data.hasData = false;
+      #ifdef DEBUG_NETWORK
+      Serial.println(F("JSON parse error!"));
+      #endif
     }
   } else {
-    Serial.printf("HTTP error: %d\n", httpCode);
     data.hasData = false;
+    #ifdef DEBUG_NETWORK
+    Serial.print(F("HTTP error: "));
+    Serial.println(httpCode);
+    #endif
   }
   
   http.end();

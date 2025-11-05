@@ -38,21 +38,18 @@ void onButtonPressed() {
 
 void setup() {
   Serial.begin(115200);
-  delay(100);
-  
-  Serial.println("\n\n=== ESP8266 System Monitor với TFT ===");
-  Serial.println("Modular Architecture - Refactored Version");
+  delay(50);
   
   // Init display
   display.begin();
   display.showSplashScreen();
   display.showWiFiConnecting();
   
-  // Init button với callback
+  // Init button
   button.begin();
   button.setCallback(onButtonPressed);
   
-  // Kết nối WiFi
+  // Connect WiFi
   bool wifiOk = network.connectWiFi(20);
   display.showWiFiStatus(wifiOk, network.getLocalIP());
   
@@ -60,14 +57,15 @@ void setup() {
 }
 
 void loop() {
+  static unsigned long buttonEnableTime = 5000;
   unsigned long currentMillis = millis();
   
-  // Check button (bỏ qua 5 giây đầu)
-  if (currentMillis > 5000) {
+  // Check button (skip first 5 seconds to avoid boot glitches)
+  if (currentMillis > buttonEnableTime) {
     button.update();
   }
   
-  // Check WiFi connection
+  // Check WiFi
   if (!network.isConnected()) {
     network.reconnect();
     return;
@@ -80,5 +78,4 @@ void loop() {
     }
   }
 }
-
 
