@@ -12,4 +12,23 @@
 #define SERVER_IP "127.0.0.1"      // IP of The Python server (Change this to your PC ip address if needed)
 #define SERVER_PORT "8080"         // Make sure to change this if .env changed
 
+// ===== TFT Display Configuration =====
+#define TFT_ST7735    // 128x160 (phổ biến nhất)
+// #define TFT_ST7789    // 135x240 (nếu dùng loại này thì comment dòng trên)
+
+// Chân kết nối TFT (SPI) - Theo sơ đồ đấu nối của bạn
+#define TFT_CS    D8   // GPIO 15
+#define TFT_RST   D4   // GPIO 2
+#define TFT_DC    D3   // GPIO 0
+#define TFT_LED   D2   // GPIO 4 - Backlight control (PWM)
+// MOSI (SDA) → D7 (GPIO 13) - Hardware SPI
+// SCK        → D5 (GPIO 14) - Hardware SPI
+
+// Button Configuration (bật/tắt màn hình)
+#define BUTTON_PIN D1  // GPIO 5 (nối GND để bấm)
+
+// Display Settings
+#define SCREEN_ROTATION 1  // 0-3 (xoay màn hình 0°, 90°, 180°, 270°)
+#define BACKLIGHT_TIMEOUT 60000  // Tự tắt sau 60s không hoạt động (ms)
+
 #endif // CONFIG_H
