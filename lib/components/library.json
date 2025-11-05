@@ -1,0 +1,19 @@
+{
+  "name": "SystemMonitorComponents",
+  "version": "1.0.0",
+  "description": "Modular components for ESP8266 System Monitor",
+  "keywords": "esp8266, tft, display, monitor, modular",
+  "authors": {
+    "name": "AnyaChann"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnyaChann/System-Info-ESP8266-NodeMCU-with-TFT-SPI-screen"
+  },
+  "frameworks": "arduino",
+  "platforms": "espressif8266",
+  "build": {
+    "flags": ["-I../include"],
+    "srcFilter": ["+<*.cpp>"]
+  }
+}
