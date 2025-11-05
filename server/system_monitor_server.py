@@ -10,12 +10,14 @@ from flask import Flask, jsonify
 import requests
 import socket
 import os
+import json
 from dotenv import load_dotenv
 
 # Load cấu hình từ .env ở folder server
 load_dotenv()
 
 app = Flask(__name__)
+app.config['JSON_SORT_KEYS'] = False  # Tắt auto-sort keys trong JSON
 
 def get_local_ip():
     """GET local IP address of the machine"""
@@ -88,16 +90,15 @@ def get_system_info():
         response = requests.get(LIBRE_HW_MONITOR_URL, timeout=5)
         data = response.json()
         
-        # Khởi tạo result với thứ tự cố định
-        from collections import OrderedDict
-        result = OrderedDict([
-            ("cpu", {"name": "", "temp": 0, "load": 0, "power": 0}),
-            ("ram", {"used": 0, "total": 0, "percent": 0}),
-            ("gpu_discrete", {"name": "", "temp": 0, "load": 0, "power": 0, "mem_used": 0, "mem_total": 0}),
-            ("gpu_integrated", {"name": "", "temp": 0, "load": 0}),
-            ("disk", []),
-            ("network", {"name": "", "upload": 0, "download": 0})
-        ])
+        # Khởi tạo result với thứ tự cố định (Python 3.7+ dict giữ insertion order)
+        result = {
+            "cpu": {"name": "", "temp": 0, "load": 0, "power": 0},
+            "ram": {"used": 0, "total": 0, "percent": 0},
+            "gpu_discrete": {"name": "", "temp": 0, "load": 0, "power": 0, "mem_used": 0, "mem_total": 0},
+            "gpu_integrated": {"name": "", "temp": 0, "load": 0},
+            "disk": [],
+            "network": {"name": "", "upload": 0, "download": 0}
+        }
         
         # Duyệt qua tất cả hardware
         # Cấu trúc: root -> Children[0] (Computer) -> Children[] (các thiết bị)
@@ -202,6 +203,14 @@ def system_info():
     data = get_system_info()
     return jsonify(data)
 
+@app.route('/test', methods=['GET'])
+def test():
+    """Test endpoint - hiển thị JSON với thứ tự chính xác (không bị Chrome sort)"""
+    from flask import Response
+    data = get_system_info()
+    json_str = json.dumps(data, indent=2, ensure_ascii=False)
+    return Response(json_str, mimetype='text/plain')
+
 @app.route('/', methods=['GET'])
 def home():
     """Trang chủ"""
@@ -209,7 +218,8 @@ def home():
     <h1>System Monitor Server</h1>
     <p>Server is running!</p>
     <p>Server IP: <strong>{PC_IP_ADDRESS}:{SERVER_PORT}</strong></p>
-    <p>API endpoint: <a href="/system-info">/system-info</a></p>
+    <p>API endpoint: <a href="/system-info">/system-info</a> (JSON - Chrome có thể sort keys)</p>
+    <p>Test endpoint: <a href="/test">/test</a> (Plain text - thứ tự chính xác)</p>
     <p>Libre HW Monitor: <a href="http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}" target="_blank">
        http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}</a></p>
     """

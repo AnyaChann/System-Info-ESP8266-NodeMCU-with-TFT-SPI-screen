@@ -25,6 +25,8 @@ const long interval = 2000; // Cập nhật mỗi 2 giây
 
 WiFiClient wifiClient;
 
+void getSystemInfo();
+
 void setup() {
   Serial.begin(115200);
   delay(100);
