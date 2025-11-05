@@ -23,17 +23,35 @@
 #include "display_manager.h"
 #include "network_manager.h"
 #include "button_handler.h"
+#include "ota_manager.h"
 
 // Khởi tạo các manager
 DisplayManager display(TFT_CS, TFT_DC, TFT_RST, TFT_LED, SCREEN_ROTATION);
 NetworkManager network(WIFI_SSID, WIFI_PASSWORD, 
                        String("http://") + SERVER_IP + ":" + SERVER_PORT + "/system-info");
 ButtonHandler button(BUTTON_PIN);
+OTAManager ota(OTA_HOSTNAME, OTA_PASSWORD);
 SystemData sysData;
 
-// Callback cho button
+// Callbacks
 void onButtonPressed() {
   display.toggle();
+}
+
+void onOTAStart() {
+  display.clear();
+  display.showSplashScreen();
+  // Hiển thị "Updating..." trên màn hình
+}
+
+void onOTAProgress(unsigned int progress, unsigned int total) {
+  // Có thể hiển thị progress bar trên TFT
+  unsigned int percent = (progress * 100) / total;
+  // TODO: Update progress on display
+}
+
+void onOTAEnd() {
+  // Hiển thị "Update Complete!" trước khi reboot
 }
 
 void setup() {
@@ -53,12 +71,25 @@ void setup() {
   bool wifiOk = network.connectWiFi(20);
   display.showWiFiStatus(wifiOk, network.getLocalIP());
   
+  // Init OTA
+  #if OTA_ENABLED
+  ota.begin();
+  ota.setOnStart(onOTAStart);
+  ota.setOnProgress(onOTAProgress);
+  ota.setOnEnd(onOTAEnd);
+  #endif
+  
   display.clear();
 }
 
 void loop() {
   static unsigned long buttonEnableTime = 5000;
   unsigned long currentMillis = millis();
+  
+  // Handle OTA updates
+  #if OTA_ENABLED
+  ota.handle();
+  #endif
   
   // Check button (skip first 5 seconds to avoid boot glitches)
   if (currentMillis > buttonEnableTime) {
