@@ -4,6 +4,7 @@
 
 #include "config.h"  // MUST be first to define TFT_ST7735
 #include "display_manager.h"
+#include "version.h"
 #include <ESP8266WiFi.h>  // For WiFi.localIP()
 
 DisplayManager::DisplayManager(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t led, uint8_t rot)
@@ -41,20 +42,20 @@ void DisplayManager::showSplashScreen() {
   tft->setTextColor(COLOR_HEADER);
   tft->setTextSize(2);
   tft->setCursor(10, 50);
-  tft->println(F("System"));
-  tft->setCursor(10, 70);
-  tft->println(F("Monitor"));
+  tft->println(F(PROJECT_NAME));
   
   // Version
   tft->setTextSize(1);
   tft->setTextColor(ST77XX_CYAN);
   tft->setCursor(35, 95);
-  tft->println(F("v1.8.1"));
+  tft->print(F("v"));
+  tft->println(F(PROJECT_VERSION));
   
   // Author
   tft->setTextColor(COLOR_TEXT);
   tft->setCursor(20, 120);
-  tft->println(F("by AnyaChann - BachTo"));
+  tft->print(F("by "));
+  tft->println(F(PROJECT_AUTHOR));
   
   delay(3000);
 }

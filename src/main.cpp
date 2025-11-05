@@ -19,6 +19,7 @@
 #endif
 
 // Include các module
+#include "version.h"
 #include "system_data.h"
 #include "display_manager.h"
 #include "network_manager.h"
@@ -38,23 +39,7 @@ SystemData sysData;
 
 // Callbacks
 void onButtonMediumPress() {
-  // 3s hold = Toggle display
-  display.toggle();
-}
-
-void onButtonLongPress() {
-  // 7s hold = Reset to config mode
-  Serial.println(F("\n⚙️ Long press detected - Resetting to Config Mode..."));
-  display.clear();
-  display.drawText(10, 50, "RESET TO", ST77XX_YELLOW, 2);
-  display.drawText(10, 80, "CONFIG MODE", ST77XX_YELLOW, 2);
-  delay(2000);
-  configMgr.resetConfig();
-  ESP.restart();
-}
-
-void onButtonMultiClick() {
-  // 3x click in 2s = Toggle OTA mode
+  // 3s hold = Enter/Exit OTA mode
   if (!otaWeb.active()) {
     // Enter OTA mode
     String ipAddress = (network != nullptr && network->isConnected()) 
@@ -67,9 +52,40 @@ void onButtonMultiClick() {
   }
 }
 
+void onButtonLongPress() {
+  // 7s hold = Reset to config mode
+  display.clear();
+  display.drawText(10, 50, "RESET TO", ST77XX_YELLOW, 2);
+  display.drawText(10, 80, "CONFIG MODE", ST77XX_YELLOW, 2);
+  delay(2000);
+  configMgr.resetConfig();
+  ESP.restart();
+}
+
+void onButtonMultiClick() {
+  // 3x click in 2s = Toggle display ON/OFF
+  display.toggle();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(50);
+  
+  // Disable WiFi debug output (prevents garbage characters at boot)
+  Serial.setDebugOutput(false);
+  WiFi.setOutputPower(20.5);  // Max WiFi power
+  
+  // Print version info
+  #ifdef DEBUG_MODE
+  Serial.println(F("\n========================================"));
+  Serial.print(F("  "));
+  Serial.println(F(VERSION_FULL));
+  Serial.print(F("  Build: "));
+  Serial.print(F(BUILD_DATE));
+  Serial.print(F(" "));
+  Serial.println(F(BUILD_TIME));
+  Serial.println(F("========================================\n"));
+  #endif
   
   // Init display
   display.begin();
@@ -77,9 +93,9 @@ void setup() {
   
   // Init button FIRST - có thể dùng bất cứ lúc nào
   button.begin();
-  button.setMediumPressCallback(onButtonMediumPress);  // 3s: toggle display
-  button.setLongPressCallback(onButtonLongPress);      // 7s: reset config
-  button.setMultiClickCallback(onButtonMultiClick);    // 3x click (2s): OTA mode
+  button.setMediumPressCallback(onButtonMediumPress);  // 3s hold: OTA mode
+  button.setLongPressCallback(onButtonLongPress);      // 7s hold: reset config
+  button.setMultiClickCallback(onButtonMultiClick);    // 3x click (2s): toggle display
   
   // Init OTA Web Manager
   otaWeb.setDisplayManager(&display);
@@ -108,7 +124,7 @@ void setup() {
   display.showWiFiConnecting();
   
   // Connect WiFi với timeout hợp lý - allow button during connection
-  Serial.println(F("Connecting to WiFi..."));
+  DEBUG_PRINTLN(F("[WIFI] Connecting..."));
   int attempts = 0;
   const int maxAttempts = 20;
   
@@ -120,20 +136,18 @@ void setup() {
   }
   
   if (network->isConnected()) {
-    Serial.print(F("✓ WiFi connected! IP: "));
-    Serial.println(network->getLocalIP());
-    // Keep "Connecting..." screen until first data fetch
+    DEBUG_PRINT(F("[WIFI] Connected! IP: "));
+    DEBUG_PRINTLN(network->getLocalIP());
   } else {
     display.showWiFiStatus(false, "");
-    Serial.println(F("✗ WiFi connection failed!"));
-    Serial.println(F("Will retry in loop..."));
+    DEBUG_PRINTLN(F("[WIFI] Connection failed - will retry in loop"));
   }
   
   // Init OTA with display feedback
   #if OTA_ENABLED
   ota.setDisplayManager(&display);
   ota.begin();
-  Serial.println(F("✓ OTA enabled - Ready for wireless updates"));
+  DEBUG_PRINTLN(F("[OTA] Ready for wireless updates"));
   #endif
 }
 
@@ -181,11 +195,7 @@ void loop() {
       configMgr.reportServerSuccess();  // Reset server fail counter
     } else {
       // Fetch failed - report to config manager
-      static unsigned long lastErrorDisplay = 0;
-      if (currentMillis - lastErrorDisplay > 5000) {
-        lastErrorDisplay = currentMillis;
-        Serial.println(F("⚠️ Failed to fetch system data"));
-      }
+      DEBUG_PRINTLN(F("[DATA] Failed to fetch system data"));
       configMgr.reportServerFailure();  // Track server failures
     }
   }

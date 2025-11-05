@@ -2,6 +2,7 @@
  * Network Manager Implementation
  */
 
+#include "config.h"
 #include "network_manager.h"
 #include <ArduinoJson.h>
 
@@ -22,10 +23,10 @@ bool NetworkManager::connectWiFi(int maxAttempts) {
   
   #ifdef DEBUG_NETWORK
   if (connected) {
-    Serial.print(F("WiFi connected! IP: "));
-    Serial.println(WiFi.localIP());
+    DEBUG_PRINT(F("[NET] WiFi connected! IP: "));
+    DEBUG_PRINTLN(WiFi.localIP());
   } else {
-    Serial.println(F("WiFi connection failed!"));
+    DEBUG_PRINTLN(F("[NET] WiFi connection failed!"));
   }
   #endif
   
@@ -102,14 +103,14 @@ bool NetworkManager::fetchSystemData(SystemData& data) {
     } else {
       data.hasData = false;
       #ifdef DEBUG_NETWORK
-      Serial.println(F("JSON parse error!"));
+      DEBUG_PRINTLN(F("[NET] JSON parse error!"));
       #endif
     }
   } else {
     data.hasData = false;
     #ifdef DEBUG_NETWORK
-    Serial.print(F("HTTP error: "));
-    Serial.println(httpCode);
+    DEBUG_PRINT(F("[NET] HTTP error: "));
+    DEBUG_PRINTLN(httpCode);
     #endif
   }
   

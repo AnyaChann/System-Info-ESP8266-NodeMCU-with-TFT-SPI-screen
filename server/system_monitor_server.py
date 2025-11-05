@@ -226,7 +226,7 @@ def home():
 
 if __name__ == '__main__':
     print("="*50)
-    print("System Monitor Server v1.0")
+    print("System Monitor Server v1.8.2")
     print("="*50)
     print(f"Server: http://{PC_IP_ADDRESS}:{SERVER_PORT}")
     print(f"API: http://{PC_IP_ADDRESS}:{SERVER_PORT}/system-info")

@@ -3,6 +3,7 @@
  */
 
 #include "config.h"
+#include "version.h"
 #include "ota_web_manager.h"
 
 OTAWebManager::OTAWebManager() 
@@ -65,7 +66,11 @@ String OTAWebManager::generateRootHTML() {
   html += F("</style></head><body>");
   html += F("<div class='container'>");
   html += F("<h1>Firmware Update</h1>");
-  html += F("<p>ESP8266 System Monitor v1.0.0</p>");
+  html += F("<p>");
+  html += F(PROJECT_NAME);
+  html += F(" v");
+  html += F(PROJECT_VERSION);
+  html += F("</p>");
   html += F("<div class='info'>Click the button below to access the firmware update page. ");
   html += F("You can upload a new .bin file to update your device.</div>");
   html += F("<a href='/update' class='btn'>Update Firmware</a>");
@@ -205,7 +210,7 @@ void OTAWebManager::start(const String& ipAddress) {
   
   currentIP = ipAddress;
   
-  Serial.println(F("\n[OTA] Entering OTA Update Mode..."));
+  DEBUG_PRINTLN(F("\n[OTA] Entering OTA Update Mode..."));
   
   // Show active screen
   showActiveScreen();
@@ -233,17 +238,15 @@ void OTAWebManager::start(const String& ipAddress) {
   webServer->begin();
   isActive = true;
   
-  Serial.println(F("[OTA] Mode activated successfully"));
-  Serial.print(F("[OTA] Access: http://"));
+  Serial.println(F("[OTA] Mode activated - Access: http://"));
   Serial.print(currentIP);
   Serial.println(F("/update"));
-  Serial.println(F("[OTA] Press 3x to exit"));
 }
 
 void OTAWebManager::stop() {
   if (!isActive) return;
   
-  Serial.println(F("\n[OTA] Exiting OTA Mode..."));
+  DEBUG_PRINTLN(F("\n[OTA] Exiting OTA Mode..."));
   
   // Show closed screen
   showClosedScreen();
@@ -262,8 +265,8 @@ void OTAWebManager::stop() {
   
   isActive = false;
   
-  Serial.println(F("[OTA] Mode closed"));
-  Serial.println(F("[OTA] Returning to normal operation"));
+  DEBUG_PRINTLN(F("[OTA] Mode closed"));
+  DEBUG_PRINTLN(F("[OTA] Returning to normal operation"));
 }
 
 void OTAWebManager::handle() {

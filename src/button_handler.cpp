@@ -2,6 +2,7 @@
  * Button Handler Implementation
  */
 
+#include "config.h"
 #include "button_handler.h"
 
 ButtonHandler::ButtonHandler(uint8_t buttonPin, unsigned long debounce, unsigned long mediumPress, unsigned long longPress)
@@ -18,10 +19,7 @@ void ButtonHandler::begin() {
   lastState = digitalRead(pin);
   
   #ifdef DEBUG_BUTTON
-  Serial.print(F("Button initialized on pin "));
-  Serial.print(pin);
-  Serial.print(F(", state: "));
-  Serial.println(lastState == HIGH ? F("HIGH") : F("LOW"));
+  DEBUG_PRINTF("[BTN] Initialized on pin %d, state: %s\n", pin, lastState == HIGH ? "HIGH" : "LOW");
   #endif
 }
 
@@ -39,22 +37,23 @@ void ButtonHandler::update() {
     }
   }
   
-  // Button is being held down - check for medium press (3s) and long press (7s)
+  // Button is being held down - check for medium (3s) and long press (7s)
   if (reading == LOW) {
     unsigned long holdDuration = now - pressStartTime;
     
-    // Check for long press (7s) - Reset config
+    // Check for long press (7s) - Reset config (trigger immediately, override medium press)
     if (!longPressTriggered && holdDuration >= longPressThreshold) {
       longPressTriggered = true;
-      Serial.println(F("\n🔘 LONG PRESS detected! (7s) - Reset Config"));
+      mediumPressTriggered = true;  // Prevent medium press from triggering
+      DEBUG_PRINTLN(F("[BTN] Long press (7s+) - Reset config"));
       if (longPressCallback != nullptr) {
         longPressCallback();
       }
     }
-    // Check for medium press (3s) - Toggle display
+    // Check for medium press (3s) - Toggle display (trigger immediately if not going for long)
     else if (!mediumPressTriggered && holdDuration >= mediumPressThreshold) {
       mediumPressTriggered = true;
-      Serial.println(F("\n🔘 MEDIUM PRESS detected! (3s) - Toggle Display"));
+      DEBUG_PRINTLN(F("[BTN] Medium press (3s) - Toggle display"));
       if (mediumPressCallback != nullptr) {
         mediumPressCallback();
       }
@@ -76,42 +75,31 @@ void ButtonHandler::update() {
       
       // Check if multi-click window expired
       if (now - firstClickTime > multiClickWindow) {
-        Serial.print(F("Window expired! Reset count. Old: "));
-        Serial.print(clickCount);
+        #ifdef DEBUG_BUTTON
+        DEBUG_PRINTF("[BTN] Window expired - Reset count %d -> 1\n", clickCount);
+        #endif
         clickCount = 1;
         firstClickTime = now;
-        Serial.print(F(" -> New: "));
-        Serial.println(clickCount);
       }
       
-      Serial.print(F("🔘 Click "));
-      Serial.print(clickCount);
-      Serial.print(F("/"));
-      Serial.print(multiClickThreshold);
-      Serial.print(F(" | Window: "));
-      Serial.print(now - firstClickTime);
-      Serial.print(F("ms/"));
-      Serial.print(multiClickWindow);
-      Serial.println(F("ms"));
+      #ifdef DEBUG_BUTTON
+      DEBUG_PRINTF("[BTN] Click %d/%d (window: %lums)\n", clickCount, multiClickThreshold, now - firstClickTime);
+      #endif
       
       // Trigger multi-click callback on 3rd click
       if (clickCount >= multiClickThreshold) {
-        Serial.println(F("\n✓✓✓ 3x CLICK DETECTED! Triggering callback..."));
+        DEBUG_PRINTLN(F("[BTN] 3x click detected - OTA mode"));
         if (multiClickCallback != nullptr) {
           multiClickCallback();
-          Serial.println(F("✓ Callback executed"));
-        } else {
-          Serial.println(F("⚠️ WARNING: multiClickCallback is NULL!"));
         }
         clickCount = 0;  // Reset
-        Serial.println(F("✓ Click count reset to 0\n"));
       }
     }
   }
   
   // Reset click count if window expired
   if (clickCount > 0 && now - firstClickTime > multiClickWindow) {
-    Serial.println(F("Multi-click timeout - reset"));
+    DEBUG_PRINTLN(F("[BTN] Multi-click timeout - reset"));
     clickCount = 0;
   }
   

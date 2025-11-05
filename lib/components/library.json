@@ -1,6 +1,6 @@
 {
   "name": "SystemMonitorComponents",
-  "version": "1.0.0",
+  "version": "1.8.2",
   "description": "Modular components for ESP8266 System Monitor",
   "keywords": "esp8266, tft, display, monitor, modular",
   "authors": {
@@ -13,7 +13,11 @@
   "frameworks": "arduino",
   "platforms": "espressif8266",
   "build": {
-    "flags": ["-I../include"],
-    "srcFilter": ["+<*.cpp>"]
+    "flags": [
+      "-I../include"
+    ],
+    "srcFilter": [
+      "+<*.cpp>"
+    ]
   }
 }

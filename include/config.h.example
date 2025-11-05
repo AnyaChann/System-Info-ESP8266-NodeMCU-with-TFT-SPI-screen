@@ -4,9 +4,31 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// ===== Debug Configuration =====
+// Uncomment để enable debug logs
+// #define DEBUG_MODE       // Master debug switch - enable all debug
+// #define DEBUG_BUTTON     // Enable button debug logs (click counting, etc)
+// #define DEBUG_NETWORK    // Enable network debug logs
+// #define DEBUG_OTA        // Enable OTA debug logs
+
+// Debug Helper Macros
+#ifdef DEBUG_MODE
+  #define DEBUG_PRINT(x) Serial.print(x)
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+  #define DEBUG_PRINTF(fmt, ...) Serial.printf(fmt, ##__VA_ARGS__)
+#else
+  #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTLN(x)
+  #define DEBUG_PRINTF(fmt, ...)
+#endif
+
+// OTA Configuration
+#define OTA_ENABLED true              // Enable/disable OTA updates
+#define OTA_HOSTNAME "ESP8266-OTA" // Hostname for OTA
+#define OTA_PASSWORD ""               // OTA password (empty = no password)
+
 // ===== TFT Display Configuration =====
 #define TFT_ST7735    // 128x160 (phổ biến nhất)
-// #define TFT_ST7789    // 135x240 (nếu dùng loại này thì comment dòng trên)
 
 // Chân kết nối TFT (SPI) - Theo sơ đồ đấu nối của bạn
 #define TFT_CS    D8   // GPIO 15
@@ -20,7 +42,7 @@
 #define BUTTON_PIN D1  // GPIO 5 (nối GND để bấm)
 
 // Display Settings
-#define SCREEN_ROTATION 1  // 0-3 (xoay màn hình 0°, 90°, 180°, 270°)
+#define SCREEN_ROTATION 3  // 0-3 (xoay màn hình 0°, 90°, 180°, 270°)
 #define BACKLIGHT_TIMEOUT 60000  // Tự tắt sau 60s không hoạt động (ms)
 
 #endif // CONFIG_H

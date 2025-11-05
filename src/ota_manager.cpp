@@ -24,9 +24,11 @@ void OTAManager::begin() {
   ArduinoOTA.onStart([this]() {
     String type = (ArduinoOTA.getCommand() == U_FLASH) ? "firmware" : "filesystem";
     
-    Serial.println(F("\n========== OTA UPDATE START =========="));
-    Serial.print(F("Type: "));
-    Serial.println(type);
+    #ifdef DEBUG_OTA
+      DEBUG_PRINTLN(F("\n[OTA] Update start"));
+      DEBUG_PRINT(F("[OTA] Type: "));
+      DEBUG_PRINTLN(type);
+    #endif
     
     if (display) {
       display->clear();
@@ -37,7 +39,7 @@ void OTAManager::begin() {
   });
   
   ArduinoOTA.onEnd([this]() {
-    Serial.println(F("\n========== OTA COMPLETE =========="));
+    DEBUG_PRINTLN(F("\n[OTA] Update complete"));
     
     if (display) {
       display->clear();
@@ -54,7 +56,9 @@ void OTAManager::begin() {
     
     // Update every 5%
     if (percent != lastPercent && percent % 5 == 0) {
-      Serial.printf("Progress: %u%%\r", percent);
+      #ifdef DEBUG_OTA
+        DEBUG_PRINTF("[OTA] Progress: %u%%\r", percent);
+      #endif
       
       if (display) {
         // Clear progress area
@@ -91,7 +95,6 @@ void OTAManager::begin() {
   });
   
   ArduinoOTA.onError([this](ota_error_t error) {
-    Serial.printf("\n========== OTA ERROR[%u] ==========\n", error);
     const char* errorMsg = "Unknown Error";
     
     if (error == OTA_AUTH_ERROR) errorMsg = "Auth Failed";
@@ -100,7 +103,7 @@ void OTAManager::begin() {
     else if (error == OTA_RECEIVE_ERROR) errorMsg = "Receive Failed";
     else if (error == OTA_END_ERROR) errorMsg = "End Failed";
     
-    Serial.println(errorMsg);
+    DEBUG_PRINTF("\n[OTA] Error[%u]: %s\n", error, errorMsg);
     
     if (display) {
       display->clear();
@@ -113,12 +116,13 @@ void OTAManager::begin() {
   
   ArduinoOTA.begin();
   
-  Serial.println(F("========== OTA READY =========="));
-  Serial.print(F("Hostname: "));
-  Serial.println(hostname);
-  Serial.print(F("Password: "));
-  Serial.println(password.length() > 0 ? "Set (protected)" : "None (open)");
-  Serial.println(F("=================================="));
+  #ifdef DEBUG_OTA
+    DEBUG_PRINTLN(F("[OTA] ArduinoOTA ready"));
+    DEBUG_PRINT(F("[OTA] Hostname: "));
+    DEBUG_PRINTLN(hostname);
+    DEBUG_PRINT(F("[OTA] Password: "));
+    DEBUG_PRINTLN(password.length() > 0 ? "Set (protected)" : "None (open)");
+  #endif
 }
 
 void OTAManager::handle() {

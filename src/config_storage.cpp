@@ -2,6 +2,7 @@
  * Config Storage Implementation
  */
 
+#include "config.h"
 #include "config_storage.h"
 #include <string.h>
 
@@ -12,48 +13,40 @@ ConfigStorage::ConfigStorage() {
 bool ConfigStorage::load(ConfigData& config) {
   EEPROM.get(0, config);
   
-  Serial.println(F("\n--- Loading Config from EEPROM ---"));
-  Serial.print(F("Magic: 0x"));
-  Serial.print(config.magic, HEX);
-  Serial.print(F(" (expected: 0x"));
-  Serial.print(EEPROM_MAGIC, HEX);
-  Serial.println(F(")"));
-  Serial.print(F("Version: "));
-  Serial.println(config.version);
+  DEBUG_PRINTLN(F("\n[STOR] Loading Config from EEPROM"));
+  DEBUG_PRINTF("[STOR] Magic: 0x%X (expected: 0x%X)\n", config.magic, EEPROM_MAGIC);
+  DEBUG_PRINT(F("[STOR] Version: "));
+  DEBUG_PRINTLN(config.version);
   
   // Verify magic and version
   if (config.magic != EEPROM_MAGIC || config.version != EEPROM_VERSION) {
-    Serial.println(F("✗ Invalid magic or version"));
+    DEBUG_PRINTLN(F("[STOR] Invalid magic or version"));
     return false;
   }
   
   // Verify checksum
   uint8_t expectedChecksum = calculateChecksum(config);
-  Serial.print(F("Checksum: 0x"));
-  Serial.print(config.checksum, HEX);
-  Serial.print(F(" (expected: 0x"));
-  Serial.print(expectedChecksum, HEX);
-  Serial.println(F(")"));
+  DEBUG_PRINTF("[STOR] Checksum: 0x%X (expected: 0x%X)\n", config.checksum, expectedChecksum);
   
   if (!verifyChecksum(config)) {
-    Serial.println(F("✗ Checksum mismatch!"));
+    DEBUG_PRINTLN(F("[STOR] Checksum mismatch!"));
     return false;
   }
   
   // Check if required fields are filled
-  Serial.print(F("Server IP: "));
-  Serial.println(config.serverIP);
-  Serial.print(F("Server Port: "));
-  Serial.println(config.serverPort);
-  Serial.print(F("WiFi SSID: "));
-  Serial.println(config.wifiSSID);
+  DEBUG_PRINT(F("[STOR] Server IP: "));
+  DEBUG_PRINTLN(config.serverIP);
+  DEBUG_PRINT(F("[STOR] Server Port: "));
+  DEBUG_PRINTLN(config.serverPort);
+  DEBUG_PRINT(F("[STOR] WiFi SSID: "));
+  DEBUG_PRINTLN(config.wifiSSID);
   
   if (strlen(config.serverIP) == 0 || strlen(config.wifiSSID) == 0) {
-    Serial.println(F("✗ Required fields empty"));
+    DEBUG_PRINTLN(F("[STOR] Required fields empty"));
     return false;
   }
   
-  Serial.println(F("✓ Config loaded successfully!"));
+  DEBUG_PRINTLN(F("[STOR] Config loaded successfully!"));
   return true;
 }
 
@@ -63,37 +56,32 @@ bool ConfigStorage::save(const ConfigData& config) {
   tempConfig.version = EEPROM_VERSION;
   tempConfig.checksum = calculateChecksum(tempConfig);
   
-  Serial.println(F("\n--- Saving Config to EEPROM ---"));
-  Serial.print(F("Magic: 0x"));
-  Serial.println(tempConfig.magic, HEX);
-  Serial.print(F("Version: "));
-  Serial.println(tempConfig.version);
-  Serial.print(F("Server: "));
-  Serial.print(tempConfig.serverIP);
-  Serial.print(F(":"));
-  Serial.println(tempConfig.serverPort);
-  Serial.print(F("WiFi: "));
-  Serial.print(tempConfig.wifiSSID);
-  Serial.println(F(" / ******"));
-  Serial.print(F("Checksum: 0x"));
-  Serial.println(tempConfig.checksum, HEX);
+  DEBUG_PRINTLN(F("\n[STOR] Saving Config to EEPROM"));
+  DEBUG_PRINTF("[STOR] Magic: 0x%X\n", tempConfig.magic);
+  DEBUG_PRINT(F("[STOR] Version: "));
+  DEBUG_PRINTLN(tempConfig.version);
+  DEBUG_PRINTF("[STOR] Server: %s:%d\n", tempConfig.serverIP, tempConfig.serverPort);
+  DEBUG_PRINT(F("[STOR] WiFi: "));
+  DEBUG_PRINT(tempConfig.wifiSSID);
+  DEBUG_PRINTLN(F(" / ******"));
+  DEBUG_PRINTF("[STOR] Checksum: 0x%X\n", tempConfig.checksum);
   
   EEPROM.put(0, tempConfig);
   bool success = EEPROM.commit();
   
   if (success) {
-    Serial.println(F("✓ Config saved to EEPROM"));
+    DEBUG_PRINTLN(F("[STOR] Config saved to EEPROM"));
     
     // Verify by reading back
     ConfigData verify;
     EEPROM.get(0, verify);
-    Serial.println(F("--- Verifying saved data ---"));
-    Serial.print(F("Magic match: "));
-    Serial.println(verify.magic == EEPROM_MAGIC ? "YES" : "NO");
-    Serial.print(F("Server IP match: "));
-    Serial.println(strcmp(verify.serverIP, tempConfig.serverIP) == 0 ? "YES" : "NO");
+    DEBUG_PRINTLN(F("[STOR] Verifying saved data"));
+    DEBUG_PRINT(F("[STOR] Magic match: "));
+    DEBUG_PRINTLN(verify.magic == EEPROM_MAGIC ? "YES" : "NO");
+    DEBUG_PRINT(F("[STOR] Server IP match: "));
+    DEBUG_PRINTLN(strcmp(verify.serverIP, tempConfig.serverIP) == 0 ? "YES" : "NO");
   } else {
-    Serial.println(F("✗ Failed to save config"));
+    DEBUG_PRINTLN(F("[STOR] Failed to save config"));
   }
   
   return success;
