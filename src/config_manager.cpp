@@ -392,9 +392,16 @@ void ConfigManager::handleRoot() {
 }
 
 void ConfigManager::handleServerConfig() {
-  if (server->hasArg("ip") && server->hasArg("port")) {
+  if (server->hasArg("ip")) {
     tempServerIP = server->arg("ip");
-    tempServerPort = server->arg("port").toInt();
+    
+    // Port is optional - default to 80 if empty or not provided
+    if (server->hasArg("port") && server->arg("port").length() > 0) {
+      tempServerPort = server->arg("port").toInt();
+    } else {
+      tempServerPort = 80;  // Default HTTP port
+    }
+    
     DEBUG_PRINT(F("[CFG] Config: "));
     DEBUG_PRINT(tempServerIP);
     DEBUG_PRINT(F(":"));
@@ -404,7 +411,7 @@ void ConfigManager::handleServerConfig() {
     // Delay to let user see success page before WiFi portal switch
     delay(2000);
   } else {
-    server->send(400, "text/plain", "Missing parameters");
+    server->send(400, "text/plain", "Missing server address");
   }
 }
 

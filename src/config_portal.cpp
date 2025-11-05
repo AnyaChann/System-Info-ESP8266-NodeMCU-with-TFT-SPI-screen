@@ -47,28 +47,27 @@ String ConfigPortal::generateServerConfigHTML() {
   html += F("</div>");
   
   html += F("<div class='guide'>");
-  html += F("<div class='guide-title'>How to get Server IP and Port:</div>");
+  html += F("<div class='guide-title'>How to configure Server Connection:</div>");
   html += F("<div class='guide-steps'>");
   html += F("<ol>");
-  html += F("<li>Open Python terminal where your server is running</li>");
-  html += F("<li>Look for the startup message showing:<br><code>Server running on http://X.X.X.X:XXXX</code></li>");
-  html += F("<li>The IP address format: <code>192.168.X.X</code></li>");
-  html += F("<li>Default port is usually <code>8080</code></li>");
-  html += F("<li>Enter both values in the form below</li>");
+  html += F("<li><strong>Local Network:</strong> Use IP address + Port<br><code>192.168.1.100</code> with port <code>8080</code></li>");
+  html += F("<li><strong>Public Domain:</strong> Use URL only<br><code>example.com</code> (leave port empty for :80)</li>");
+  html += F("<li><strong>Custom Port:</strong> Use domain + Port<br><code>example.com</code> with port <code>8080</code></li>");
+  html += F("<li>Port is optional - defaults to <code>80</code> if empty</li>");
   html += F("</ol>");
   html += F("</div>");
   html += F("</div>");
   
   html += F("<form action='/server' method='POST'>");
   html += F("<div class='form-group'>");
-  html += F("<label>Server IP Address</label>");
-  html += F("<input type='text' name='ip' placeholder='192.168.1.100' required pattern='\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}'>");
-  html += F("<div class='example'>Example: 192.168.1.100 or 192.168.0.50</div>");
+  html += F("<label>Server Address (IP or Domain)</label>");
+  html += F("<input type='text' name='ip' placeholder='192.168.1.100 or example.com' required>");
+  html += F("<div class='example'>Examples: 192.168.1.100, abcd.xyz, server.local</div>");
   html += F("</div>");
   html += F("<div class='form-group'>");
-  html += F("<label>Server Port</label>");
-  html += F("<input type='number' name='port' placeholder='8080' value='8080' required min='1' max='65535'>");
-  html += F("<div class='example'>Default: 8080</div>");
+  html += F("<label>Server Port (optional)</label>");
+  html += F("<input type='number' name='port' placeholder='80 (default)' value='' min='1' max='65535'>");
+  html += F("<div class='example'>Leave empty for port 80, or enter custom port (e.g. 8080)</div>");
   html += F("</div>");
   html += F("<button type='submit'>Continue to WiFi Setup</button>");
   html += F("</form>");
@@ -113,7 +112,12 @@ String ConfigPortal::generateSuccessHTML(const String& apSSID, const String& ser
   html += F("<div class='config-box'>");
   html += F("<div class='config-label'>Server Connection</div>");
   html += F("<div class='config-value'>");
-  html += serverIP + ":" + String(serverPort);
+  // Show port only if not default (80)
+  if (serverPort == 80) {
+    html += serverIP;
+  } else {
+    html += serverIP + ":" + String(serverPort);
+  }
   html += F("</div>");
   html += F("</div>");
   
