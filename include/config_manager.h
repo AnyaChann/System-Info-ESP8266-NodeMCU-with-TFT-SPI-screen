@@ -1,7 +1,6 @@
 /*
  * Config Manager - WiFi và Server Configuration Portal
- * Cho phép config qua Web Portal khi ESP8266 ở AP mode
- * Sử dụng WiFiManager để scan và chọn WiFi
+ * Modular architecture with separated storage and portal
  */
 
 #ifndef CONFIG_MANAGER_H
@@ -12,28 +11,8 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiManager.h>
-#include <EEPROM.h>
-
-// EEPROM Layout
-#define EEPROM_SIZE 512
-#define EEPROM_MAGIC 0x4553  // "ES" magic number
-#define EEPROM_VERSION 1
-
-// Config structure
-struct ConfigData {
-  uint16_t magic;           // Magic number để verify
-  uint8_t version;          // Config version
-  
-  // Server config (config trước)
-  char serverIP[16];        // "192.168.2.60"
-  uint16_t serverPort;      // 8080
-  
-  // WiFi config (config sau)
-  char wifiSSID[32];        // WiFi name
-  char wifiPassword[64];    // WiFi password
-  
-  uint8_t checksum;         // Simple checksum
-};
+#include "config_storage.h"
+#include "config_portal.h"
 
 class ConfigManager {
 public:
@@ -69,6 +48,15 @@ public:
   // Display feedback (optional)
   void setDisplayManager(class DisplayManager* disp) { displayManager = disp; }
   
+private:
+  // Display helpers
+  void showReconnectDisplay();
+  void showRetryDisplay();
+  
+  // Portal helpers
+  bool startServerConfigPortal();
+  bool startWiFiConfigPortal();
+  
   // Setters (for manual config)
   void setServerIP(const char* ip);
   void setServerPort(uint16_t port);
@@ -76,6 +64,7 @@ public:
 
 private:
   ConfigData config;
+  ConfigStorage storage;
   WiFiManager* wifiManager;
   ESP8266WebServer* server;
   bool configMode;
@@ -87,14 +76,10 @@ private:
   uint16_t tempServerPort;
   int connectionFailCount;
   unsigned long lastConnectionAttempt;
+  bool lastConnectedShown;
   
   // Optional display feedback
   class DisplayManager* displayManager;
-  
-  // Internal helpers
-  uint8_t calculateChecksum();
-  bool verifyChecksum();
-  void clearConfig();
   
   // WiFiManager callbacks
   void configModeCallback(WiFiManager *myWiFiManager);
@@ -106,12 +91,6 @@ private:
   void handleTestServer();
   void handleStatus();
   void handleReset();
-  
-  // HTML generators
-  String generateServerConfigHTML();
-  String generateTestingHTML();
-  String generateSuccessHTML();
-  String generateErrorHTML(const char* error);
 };
 
 #endif
