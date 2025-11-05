@@ -14,6 +14,8 @@ DisplayManager::DisplayManager(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t led,
     tft = new Adafruit_ST7735(csPin, dcPin, rstPin);
   #elif defined(TFT_ST7789)
     tft = new Adafruit_ST7789(csPin, dcPin, rstPin);
+  #elif defined(TFT_ILI9341)
+    tft = new Adafruit_ILI9341(csPin, dcPin, rstPin);
   #endif
 }
 
@@ -25,10 +27,17 @@ void DisplayManager::begin() {
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, HIGH);
   
+  // Initialize display based on type
   #ifdef TFT_ST7735
-    tft->initR(INITR_BLACKTAB);
+    #ifdef ST7735_INITR
+      tft->initR(ST7735_INITR);  // Use custom init code if defined
+    #else
+      tft->initR(INITR_BLACKTAB);  // Default to BLACKTAB
+    #endif
   #elif defined(TFT_ST7789)
     tft->init(SCREEN_WIDTH, SCREEN_HEIGHT);
+  #elif defined(TFT_ILI9341)
+    tft->begin();
   #endif
   
   tft->setRotation(rotation);

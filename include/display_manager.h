@@ -13,22 +13,50 @@
 // Include thư viện TFT phù hợp
 #ifdef TFT_ST7735
   #include <Adafruit_ST7735.h>
-  #define SCREEN_WIDTH  128
-  #define SCREEN_HEIGHT 160
+  #ifndef TFT_WIDTH
+    #define TFT_WIDTH  128
+  #endif
+  #ifndef TFT_HEIGHT
+    #define TFT_HEIGHT 160
+  #endif
+  #define SCREEN_WIDTH  TFT_WIDTH
+  #define SCREEN_HEIGHT TFT_HEIGHT
+  
 #elif defined(TFT_ST7789)
   #include <Adafruit_ST7789.h>
-  #define SCREEN_WIDTH  135
-  #define SCREEN_HEIGHT 240
+  #ifndef TFT_WIDTH
+    #define TFT_WIDTH  240
+  #endif
+  #ifndef TFT_HEIGHT
+    #define TFT_HEIGHT 240
+  #endif
+  #define SCREEN_WIDTH  TFT_WIDTH
+  #define SCREEN_HEIGHT TFT_HEIGHT
+  
+#elif defined(TFT_ILI9341)
+  #include <Adafruit_ILI9341.h>
+  #ifndef TFT_WIDTH
+    #define TFT_WIDTH  240
+  #endif
+  #ifndef TFT_HEIGHT
+    #define TFT_HEIGHT 320
+  #endif
+  #define SCREEN_WIDTH  TFT_WIDTH
+  #define SCREEN_HEIGHT TFT_HEIGHT
+  
 #else
-  #error "Please define TFT_ST7735 or TFT_ST7789 in config.h"
+  #error "Please define a display type (TFT_ST7735, TFT_ST7789, or TFT_ILI9341) in config.h"
 #endif
 
 class DisplayManager {
 private:
+  // Polymorphic pointer based on display type
   #ifdef TFT_ST7735
     Adafruit_ST7735* tft;
   #elif defined(TFT_ST7789)
     Adafruit_ST7789* tft;
+  #elif defined(TFT_ILI9341)
+    Adafruit_ILI9341* tft;
   #endif
   
   uint8_t csPin, dcPin, rstPin, ledPin;
