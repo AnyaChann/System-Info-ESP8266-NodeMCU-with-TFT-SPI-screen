@@ -39,6 +39,20 @@ void onButtonPressed() {
   display.toggle();
 }
 
+void onButtonLongPress() {
+  Serial.println(F("\n⚙️ Entering Config Mode..."));
+  
+  // Show message on display
+  display.clear();
+  display.drawText(10, 50, "RESET TO", ST77XX_YELLOW, 2);
+  display.drawText(10, 80, "CONFIG MODE", ST77XX_YELLOW, 2);
+  delay(2000);
+  
+  // Reset config and reboot
+  configMgr.resetConfig();
+  ESP.restart();
+}
+
 void onOTAStart() {
   display.clear();
   display.showSplashScreen();
@@ -98,7 +112,8 @@ void setup() {
   
   // Init button
   button.begin();
-  button.setCallback(onButtonPressed);
+  button.setCallback(onButtonPressed);           // Short press: toggle display
+  button.setLongPressCallback(onButtonLongPress); // Long press (5s): config mode
   
   // Connect WiFi với timeout hợp lý
   Serial.println(F("Connecting to WiFi..."));

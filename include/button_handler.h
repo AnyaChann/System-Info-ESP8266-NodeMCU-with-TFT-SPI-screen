@@ -13,14 +13,19 @@ private:
   uint8_t pin;
   bool lastState;
   unsigned long lastPressTime;
+  unsigned long pressStartTime;
   unsigned long debounceDelay;
-  void (*callback)();  // Callback function khi button được nhấn
+  unsigned long longPressThreshold;
+  bool longPressTriggered;
+  void (*callback)();          // Short press callback
+  void (*longPressCallback)(); // Long press callback
   
 public:
-  ButtonHandler(uint8_t buttonPin, unsigned long debounce = 50);
+  ButtonHandler(uint8_t buttonPin, unsigned long debounce = 50, unsigned long longPress = 5000);
   void begin();
   void update();
   void setCallback(void (*func)());
+  void setLongPressCallback(void (*func)());
   bool isPressed();
 };
 

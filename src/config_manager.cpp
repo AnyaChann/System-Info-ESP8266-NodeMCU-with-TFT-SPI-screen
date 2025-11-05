@@ -235,11 +235,11 @@ bool ConfigManager::startConfigPortalWithValidation() {
   configMode = true;
   Serial.println(F("\n=== CONFIG PORTAL ==="));
   
-  // Step 1: WiFi config FIRST (so we have network for server config)
-  if (!startWiFiConfigPortal()) return false;
-  
-  // Step 2: Server config (on the WiFi network we just connected to)
+  // Step 1: Server config
   if (!startServerConfigPortal()) return false;
+  
+  // Step 2: WiFi config
+  if (!startWiFiConfigPortal()) return false;
   
   // Step 3: Validate server (optional - save anyway if failed)
   Serial.println(F("\nStep 3: Validating..."));
@@ -251,11 +251,9 @@ bool ConfigManager::startConfigPortalWithValidation() {
     
     if (displayManager) {
       displayManager->clear();
-      displayManager->drawText(5, 30, "WARNING!", ST77XX_YELLOW, 2);
-      displayManager->drawText(5, 60, "Server test", ST77XX_WHITE, 1);
-      displayManager->drawText(5, 75, "failed!", ST77XX_WHITE, 1);
-      displayManager->drawText(5, 95, "Saving config", ST77XX_CYAN, 1);
-      displayManager->drawText(5, 110, "anyway...", ST77XX_CYAN, 1);
+      displayManager->drawText(20, 40, "WARNING", ST77XX_YELLOW, 2);
+      displayManager->drawText(5, 75, "Server offline", ST77XX_WHITE, 1);
+      displayManager->drawText(5, 95, "Saving anyway", ST77XX_CYAN, 1);
       delay(2000);
     }
   } else {
@@ -273,8 +271,9 @@ bool ConfigManager::startConfigPortalWithValidation() {
     
     if (displayManager) {
       displayManager->clear();
-      displayManager->drawText(5, 50, "SAVED!", ST77XX_GREEN, 2);
-      displayManager->drawText(5, 80, "Rebooting...", ST77XX_WHITE, 1);
+      displayManager->drawText(30, 50, "SAVED!", ST77XX_GREEN, 2);
+      displayManager->drawText(20, 90, "Reboot in", ST77XX_WHITE, 1);
+      displayManager->drawText(40, 110, "3 sec", ST77XX_CYAN, 2);
     }
     
     configMode = false;
@@ -287,7 +286,8 @@ bool ConfigManager::startConfigPortalWithValidation() {
   
   if (displayManager) {
     displayManager->clear();
-    displayManager->drawText(5, 50, "SAVE ERROR!", ST77XX_RED, 2);
+    displayManager->drawText(10, 60, "ERROR!", ST77XX_RED, 2);
+    displayManager->drawText(20, 95, "Save failed", ST77XX_WHITE, 1);
     delay(3000);
   }
   
@@ -295,23 +295,27 @@ bool ConfigManager::startConfigPortalWithValidation() {
 }
 
 bool ConfigManager::startServerConfigPortal() {
-  Serial.println(F("\nStep 2: Server Config"));
+  Serial.println(F("Step 1: Server Config"));
   
-  // WiFi already connected from Step 1
-  IPAddress localIP = WiFi.localIP();
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(apSSID, apPassword);
+  IPAddress apIP = WiFi.softAPIP();
   
-  Serial.print(F("Server config at: "));
-  Serial.println(localIP);
+  Serial.print(F("AP: "));
+  Serial.println(apIP);
   
-  // Show server config info on display
+  // Show AP info on display (compact and clear)
   if (displayManager) {
     displayManager->clear();
-    displayManager->drawText(5, 15, "STEP 2:", ST77XX_YELLOW, 1);
-    displayManager->drawText(5, 35, "Server Setup", ST77XX_WHITE, 2);
-    displayManager->drawText(5, 65, "Open browser:", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 80, localIP.toString().c_str(), ST77XX_GREEN, 1);
-    displayManager->drawText(5, 100, "Enter server", ST77XX_CYAN, 1);
-    displayManager->drawText(5, 115, "IP & port", ST77XX_CYAN, 1);
+    displayManager->drawText(15, 15, "SETUP MODE", ST77XX_YELLOW, 2);
+    
+    displayManager->drawText(5, 50, "WiFi:", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 65, apSSID, ST77XX_CYAN, 1);
+    
+    displayManager->drawText(5, 90, "Browser:", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 105, apIP.toString().c_str(), ST77XX_GREEN, 2);
+    
+    displayManager->drawText(10, 135, "Enter Server", ST77XX_YELLOW, 1);
   }
   
   if (!server) server = new ESP8266WebServer(80);
@@ -328,7 +332,7 @@ bool ConfigManager::startServerConfigPortal() {
     server->handleClient();
     if (tempServerIP.length() > 0 && tempServerPort > 0) {
       server->stop();
-      // Don't disconnect WiFi - we're using STA mode now, not AP
+      WiFi.softAPdisconnect(true);
       return true;
     }
     delay(10);
@@ -339,17 +343,18 @@ bool ConfigManager::startServerConfigPortal() {
 }
 
 bool ConfigManager::startWiFiConfigPortal() {
-  Serial.println(F("\nStep 1: WiFi Config"));
+  Serial.println(F("\nStep 2: WiFi Config"));
   
-  // Show WiFi config step on display
+  // Show WiFi config step on display (more compact)
   if (displayManager) {
     displayManager->clear();
-    displayManager->drawText(5, 15, "STEP 1:", ST77XX_YELLOW, 1);
-    displayManager->drawText(5, 35, "WiFi Setup", ST77XX_WHITE, 2);
-    displayManager->drawText(5, 70, "Connect to:", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 85, apSSID, ST77XX_CYAN, 1);
-    displayManager->drawText(5, 105, "Select your", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 120, "WiFi network", ST77XX_WHITE, 1);
+    displayManager->drawText(10, 30, "WiFi Setup", ST77XX_YELLOW, 2);
+    
+    displayManager->drawText(5, 70, "1. Connect to:", ST77XX_WHITE, 1);
+    displayManager->drawText(10, 85, apSSID, ST77XX_CYAN, 1);
+    
+    displayManager->drawText(5, 110, "2. Select your", ST77XX_WHITE, 1);
+    displayManager->drawText(10, 125, "home WiFi", ST77XX_WHITE, 1);
   }
   
   if (!wifiManager) wifiManager = new WiFiManager();
