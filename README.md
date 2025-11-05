@@ -88,7 +88,7 @@ Sửa WiFi, IP và Port trong `config.h`:
 ```cpp
 #define WIFI_SSID "TenWiFiCuaBan"
 #define WIFI_PASSWORD "MatKhauWiFi"
-#define SERVER_IP "192.168.2.60"     // IP từ .env hoặc tự động phát hiện
+#define SERVER_IP "192.168.0.0"     // IP từ .env hoặc tự động phát hiện
 #define SERVER_PORT "8080"
 ```
 

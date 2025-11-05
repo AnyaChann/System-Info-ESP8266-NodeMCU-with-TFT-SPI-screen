@@ -27,7 +27,7 @@
 #include "config_manager.h"
 
 // Khởi tạo các manager
-ConfigManager configMgr("ESP8266-Config", "12345678");  // AP name & password
+ConfigManager configMgr("ESP8266-Config", "82668266");  // AP name & password
 DisplayManager display(TFT_CS, TFT_DC, TFT_RST, TFT_LED, SCREEN_ROTATION);
 NetworkManager* network = nullptr;  // Khởi tạo sau khi có config
 ButtonHandler button(BUTTON_PIN);
@@ -40,33 +40,13 @@ void onButtonPressed() {
 }
 
 void onButtonLongPress() {
-  Serial.println(F("\n⚙️ Entering Config Mode..."));
-  
-  // Show message on display
+  Serial.println(F("\n⚙️ Long press detected - Resetting to Config Mode..."));
   display.clear();
   display.drawText(10, 50, "RESET TO", ST77XX_YELLOW, 2);
   display.drawText(10, 80, "CONFIG MODE", ST77XX_YELLOW, 2);
   delay(2000);
-  
-  // Reset config and reboot
   configMgr.resetConfig();
   ESP.restart();
-}
-
-void onOTAStart() {
-  display.clear();
-  display.showSplashScreen();
-  // Hiển thị "Updating..." trên màn hình
-}
-
-void onOTAProgress(unsigned int progress, unsigned int total) {
-  // Có thể hiển thị progress bar trên TFT
-  unsigned int percent = (progress * 100) / total;
-  // TODO: Update progress on display
-}
-
-void onOTAEnd() {
-  // Hiển thị "Update Complete!" trước khi reboot
 }
 
 void setup() {
@@ -83,22 +63,11 @@ void setup() {
   
   // Check if in config mode (no valid config or user reset)
   if (configMgr.isConfigMode()) {
-    // Hiển thị thông tin config portal trên TFT
-    display.clear();
-    display.drawText(5, 30, "CONFIG MODE", ST77XX_YELLOW, 1);
-    display.drawText(5, 50, "Connect WiFi:", ST77XX_WHITE, 1);
-    display.drawText(5, 65, "ESP8266-Config", ST77XX_CYAN, 1);
-    display.drawText(5, 80, "Pass: 12345678", ST77XX_CYAN, 1);
-    display.drawText(5, 100, "Open browser:", ST77XX_WHITE, 1);
-    display.drawText(5, 115, "192.168.4.1", ST77XX_GREEN, 1);
-    
-    // Chờ config từ web portal
     while (configMgr.isConfigMode()) {
       configMgr.handleClient();
       delay(10);
     }
-    // Sau khi config xong, ESP sẽ tự reboot
-    return;
+    return;  // Config complete, ESP will reboot
   }
   
   // Có config rồi, khởi tạo network với config đã lưu
@@ -132,9 +101,6 @@ void setup() {
   // Init OTA
   #if OTA_ENABLED
   ota.begin();
-  ota.setOnStart(onOTAStart);
-  ota.setOnProgress(onOTAProgress);
-  ota.setOnEnd(onOTAEnd);
   #endif
 }
 
@@ -153,34 +119,12 @@ void loop() {
   static unsigned long buttonEnableTime = 5000;
   unsigned long currentMillis = millis();
   
-  // Check WiFi connection status (lightweight check)
+  // Check WiFi - shouldFallbackToConfig() handles display & reset
   if (!network->isConnected()) {
-    // Don't call shouldFallbackToConfig() in every loop - it's expensive
-    // Only check fallback every 30 seconds
-    static unsigned long lastFallbackCheck = 0;
-    if (currentMillis - lastFallbackCheck > 30000) {
-      lastFallbackCheck = currentMillis;
-      
-      if (configMgr.shouldFallbackToConfig()) {
-        Serial.println(F("\n⚠️ Fallback to Config Mode!"));
-        display.clear();
-        display.drawText(5, 20, "WiFi ERROR!", ST77XX_RED, 1);
-        display.drawText(5, 40, "Failed to", ST77XX_YELLOW, 1);
-        display.drawText(5, 55, "connect after", ST77XX_YELLOW, 1);
-        display.drawText(5, 70, "5 attempts", ST77XX_YELLOW, 1);
-        display.drawText(5, 90, "Rebooting to", ST77XX_WHITE, 1);
-        display.drawText(5, 105, "config mode...", ST77XX_WHITE, 1);
-        delay(3000);
-        
-        // Reset config to force portal
-        configMgr.resetConfig();
-        ESP.restart();
-        return;
-      }
+    if (configMgr.shouldFallbackToConfig()) {
+      configMgr.resetConfig();
+      ESP.restart();
     }
-    
-    // Quick reconnect attempt (non-blocking)
-    network->reconnect();
     return;
   }
   

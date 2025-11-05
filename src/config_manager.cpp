@@ -307,15 +307,14 @@ bool ConfigManager::startServerConfigPortal() {
   // Show AP info on display (compact and clear)
   if (displayManager) {
     displayManager->clear();
-    displayManager->drawText(15, 15, "SETUP MODE", ST77XX_YELLOW, 2);
+    displayManager->drawText(15, 15, "IP SETUP", ST77XX_YELLOW, 2);
     
     displayManager->drawText(5, 50, "WiFi:", ST77XX_WHITE, 1);
     displayManager->drawText(5, 65, apSSID, ST77XX_CYAN, 1);
+    displayManager->drawText(5, 75, apPassword, ST77XX_CYAN, 1);
     
-    displayManager->drawText(5, 90, "Browser:", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 90, "Browse for:", ST77XX_WHITE, 1);
     displayManager->drawText(5, 105, apIP.toString().c_str(), ST77XX_GREEN, 2);
-    
-    displayManager->drawText(10, 135, "Enter Server", ST77XX_YELLOW, 1);
   }
   
   if (!server) server = new ESP8266WebServer(80);
@@ -345,16 +344,18 @@ bool ConfigManager::startServerConfigPortal() {
 bool ConfigManager::startWiFiConfigPortal() {
   Serial.println(F("\nStep 2: WiFi Config"));
   
-  // Show WiFi config step on display (more compact)
+  // Show WiFi config step on display
   if (displayManager) {
     displayManager->clear();
-    displayManager->drawText(10, 30, "WiFi Setup", ST77XX_YELLOW, 2);
+    displayManager->drawText(10, 15, "WIFI SETUP", ST77XX_YELLOW, 2);
     
-    displayManager->drawText(5, 70, "1. Connect to:", ST77XX_WHITE, 1);
-    displayManager->drawText(10, 85, apSSID, ST77XX_CYAN, 1);
+    displayManager->drawText(5, 50, "Step 1:", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 65, "Reconnect to", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 80, apSSID, ST77XX_CYAN, 1);
     
-    displayManager->drawText(5, 110, "2. Select your", ST77XX_WHITE, 1);
-    displayManager->drawText(10, 125, "home WiFi", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 90, "Step 2:", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 105, "Select WiFi", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 115, "& Enter Pass", ST77XX_WHITE, 1);
   }
   
   if (!wifiManager) wifiManager = new WiFiManager();
@@ -394,6 +395,9 @@ void ConfigManager::handleServerConfig() {
     Serial.print(F(":"));
     Serial.println(tempServerPort);
     server->send(200, "text/html", ConfigPortal::generateSuccessHTML(apSSID, tempServerIP, tempServerPort));
+    
+    // Delay to let user see success page before WiFi portal switch
+    delay(2000);
   } else {
     server->send(400, "text/plain", "Missing parameters");
   }

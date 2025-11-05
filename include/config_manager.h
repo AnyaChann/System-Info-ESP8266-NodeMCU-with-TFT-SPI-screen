@@ -16,7 +16,7 @@
 
 class ConfigManager {
 public:
-  ConfigManager(const char* apName = "ESP8266-Config", const char* apPass = "12345678");
+  ConfigManager(const char* apName = "ESP8266-Config", const char* apPass = "82668266");
   
   // Lifecycle
   void begin();

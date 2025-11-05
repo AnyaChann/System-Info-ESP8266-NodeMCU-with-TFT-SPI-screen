@@ -20,7 +20,7 @@ struct ConfigData {
   uint8_t version;          // Config version
   
   // Server config
-  char serverIP[16];        // "192.168.2.60"
+  char serverIP[16];        // "192.168.0.0"
   uint16_t serverPort;      // 8080
   
   // WiFi config

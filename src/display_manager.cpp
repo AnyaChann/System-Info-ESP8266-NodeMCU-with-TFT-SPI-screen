@@ -36,13 +36,27 @@ void DisplayManager::begin() {
 
 void DisplayManager::showSplashScreen() {
   tft->fillScreen(COLOR_BG);
+  
+  // Title
   tft->setTextColor(COLOR_HEADER);
   tft->setTextSize(2);
-  tft->setCursor(10, 60);
+  tft->setCursor(10, 50);
   tft->println(F("System"));
-  tft->setCursor(10, 80);
+  tft->setCursor(10, 70);
   tft->println(F("Monitor"));
-  delay(1500);
+  
+  // Version
+  tft->setTextSize(1);
+  tft->setTextColor(ST77XX_CYAN);
+  tft->setCursor(35, 95);
+  tft->println(F("v1.8.0"));
+  
+  // Author
+  tft->setTextColor(COLOR_TEXT);
+  tft->setCursor(20, 120);
+  tft->println(F("by AnyaChann - BachTo"));
+  
+  delay(3000);
 }
 
 void DisplayManager::showWiFiConnecting() {
@@ -205,7 +219,7 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
   tft->setTextColor(COLOR_HEADER);
   tft->print(F("WiFi:"));
   
-  // Extract last octet (e.g., "192.168.2.60" -> ".60")
+  // Extract last octet (e.g., "192.168.0.0" -> ".60")
   String ip = WiFi.localIP().toString();
   int lastDot = ip.lastIndexOf('.');
   if (lastDot != -1) {

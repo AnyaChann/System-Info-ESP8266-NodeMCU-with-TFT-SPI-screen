@@ -79,7 +79,7 @@ System Validation
    │  Bước 1/2: Server       │
    │                         │
    │  🖥️ Server IP:          │
-   │  [192.168.2.60____]     │
+   │  [192.168.0.0____]     │
    │                         │
    │  🔌 Port:               │
    │  [8080____________]     │
@@ -92,7 +92,7 @@ System Validation
    ```
    ✅ Bước 1 Hoàn thành!
    
-   Server: 192.168.2.60:8080
+   Server: 192.168.0.0:8080
    
    📱 Bước 2: WiFi Config
    
@@ -164,8 +164,8 @@ System Validation
     ✓ WiFi connected! IP: 192.168.2.123
     
     --- Testing Server Connection ---
-    Server: 192.168.2.60:8080
-    Testing URL: http://192.168.2.60:8080/system-info
+    Server: 192.168.0.0:8080
+    Testing URL: http://192.168.0.0:8080/system-info
     HTTP Code: 200
     ✓ Server responding!
     
@@ -183,7 +183,7 @@ System Validation
     IP: 192.168.2.123
     
     Server: OK
-    192.168.2.60:8080
+    192.168.0.0:8080
     
     Saving config...
     Rebooting...
@@ -244,7 +244,7 @@ Server: Not responding ✗
 
 ⚠️ Warning: Server not responding!
 Check if Python server is running at
-192.168.2.60:8080
+192.168.0.0:8080
 
 (Will retry in 60 seconds)
 (NOT entering config mode)
@@ -257,7 +257,7 @@ IP: 192.168.2.123
 
 Server: ERROR
 No response from:
-192.168.2.60:8080
+192.168.0.0:8080
 
 Check Python
 server status
@@ -414,7 +414,7 @@ Config aborted. Please check server and try again.
 4. **Test from another device:**
    ```bash
    # From phone browser
-   http://192.168.2.60:8080/system-info
+   http://192.168.0.0:8080/system-info
    ```
 
 ---
