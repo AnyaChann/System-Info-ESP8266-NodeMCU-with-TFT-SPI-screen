@@ -42,6 +42,14 @@ if not PC_IP_ADDRESS:
 # Libre Hardware Monitor server URL
 LIBRE_HW_MONITOR_URL = f"http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}/data.json"
 
+# Hardware detection patterns
+CPU_KEYWORDS = ("Intel Core", "AMD Ryzen", "Intel Xeon", "AMD EPYC", "Intel Pentium", "Intel Celeron", "AMD Athlon")
+RAM_KEYWORDS = ("Memory", "RAM", "Generic Memory")
+GPU_DISCRETE_KEYWORDS = ("NVIDIA", "GeForce", "GTX", "RTX", "Quadro", "AMD Radeon RX", "AMD Radeon PRO", "Radeon VII", "Intel Arc", "Intel Iris Xe MAX")
+GPU_INTEGRATED_KEYWORDS = ("Radeon Graphics", "Radeon(TM) Graphics", "Intel UHD", "Intel Iris", "Intel HD Graphics", "Vega", "RDNA")
+DISK_KEYWORDS = ("SAMSUNG", "WD", "SEAGATE", "TOSHIBA", "KINGSTON", "CRUCIAL", "SANDISK", "INTEL", "MICRON", "HYNIX", "SSD", "HDD", "NVME", "M.2")
+NETWORK_KEYWORDS = ("Wi-Fi", "Ethernet", "Network", "Wireless", "LAN", "Realtek", "Intel", "Qualcomm", "Broadcom")
+
 def debug_print(message):
     """In log chỉ khi DEBUG_MODE = true"""
     if DEBUG_MODE:
@@ -52,7 +60,6 @@ def parse_value(value_str):
     if not value_str:
         return 0.0
     try:
-        # Loại bỏ đơn vị (bao gồm cả ký tự Unicode như Â°C) và chuyển dấu phẩy thành dấu chấm
         cleaned = str(value_str).split()[0].replace(",", ".")
         return float(cleaned)
     except (ValueError, IndexError):
@@ -67,20 +74,30 @@ def find_sensor(sensors, sensor_type, keyword):
                     return parse_value(item.get("Value", "0"))
     return 0.0
 
+def find_sensor_multi(sensors, sensor_type, keywords):
+    """Tìm sensor với nhiều keywords (fallback)"""
+    for keyword in keywords:
+        value = find_sensor(sensors, sensor_type, keyword)
+        if value > 0:
+            return value
+    return 0.0
+
 def get_system_info():
     """Get SYSTEM Statistics from Libre Hardware Monitor"""
     try:
         response = requests.get(LIBRE_HW_MONITOR_URL, timeout=5)
         data = response.json()
         
-        result = {
-            "cpu": {"name": "", "temp": 0, "load": 0, "power": 0},
-            "ram": {"used": 0, "total": 0, "percent": 0},
-            "gpu_discrete": {"name": "", "temp": 0, "load": 0, "power": 0, "mem_used": 0, "mem_total": 0},
-            "gpu_integrated": {"name": "", "temp": 0, "load": 0},
-            "disk": [],
-            "network": {"name": "", "upload": 0, "download": 0}
-        }
+        # Khởi tạo result với thứ tự cố định
+        from collections import OrderedDict
+        result = OrderedDict([
+            ("cpu", {"name": "", "temp": 0, "load": 0, "power": 0}),
+            ("ram", {"used": 0, "total": 0, "percent": 0}),
+            ("gpu_discrete", {"name": "", "temp": 0, "load": 0, "power": 0, "mem_used": 0, "mem_total": 0}),
+            ("gpu_integrated", {"name": "", "temp": 0, "load": 0}),
+            ("disk", []),
+            ("network", {"name": "", "upload": 0, "download": 0})
+        ])
         
         # Duyệt qua tất cả hardware
         # Cấu trúc: root -> Children[0] (Computer) -> Children[] (các thiết bị)
@@ -103,123 +120,55 @@ def get_system_info():
             sensors = hw.get("Children", [])
             hw_type = hw.get("ImageURL", "").lower()  # Sử dụng ImageURL để xác định loại phần cứng
             
-            # CPU - Phát hiện linh hoạt (Intel, AMD, hoặc các hãng khác)
-            is_cpu = (
-                "Intel Core" in hw_name or 
-                "AMD Ryzen" in hw_name or 
-                "Intel Xeon" in hw_name or
-                "AMD EPYC" in hw_name or
-                "Intel Pentium" in hw_name or
-                "Intel Celeron" in hw_name or
-                "AMD Athlon" in hw_name or
-                "cpu.png" in hw_type
-            )
-            
-            if is_cpu:
+            # CPU - Phát hiện linh hoạt
+            if any(kw in hw_name for kw in CPU_KEYWORDS) or "cpu.png" in hw_type:
                 detected_hardware["cpu"] = True
                 result["cpu"]["name"] = hw_name
-                
-                # Lấy nhiệt độ CPU
-                for sensor_group in sensors:
-                    if sensor_group.get("Text") == "Temperatures":
-                        for temp_sensor in sensor_group.get("Children", []):
-                            temp_name = temp_sensor.get("Text", "")
-                            if "Tctl" in temp_name or "Package" in temp_name or "Core" in temp_name:
-                                result["cpu"]["temp"] = parse_value(temp_sensor.get("Value", ""))
-                                break
-                        if result["cpu"]["temp"] > 0:
-                            break
-                
-                # Lấy CPU Load
-                for sensor_group in sensors:
-                    if sensor_group.get("Text") == "Load":
-                        for load_sensor in sensor_group.get("Children", []):
-                            if "CPU Total" in load_sensor.get("Text", ""):
-                                result["cpu"]["load"] = parse_value(load_sensor.get("Value", ""))
-                                break
-                
-                # Lấy CPU Power
-                for sensor_group in sensors:
-                    if sensor_group.get("Text") == "Powers":
-                        for power_sensor in sensor_group.get("Children", []):
-                            if "Package" in power_sensor.get("Text", ""):
-                                result["cpu"]["power"] = parse_value(power_sensor.get("Value", ""))
-                                break
+                result["cpu"]["temp"] = find_sensor_multi(sensors, "Temperatures", ("Tctl", "Package", "Core"))
+                result["cpu"]["load"] = find_sensor(sensors, "Load", "CPU Total")
+                result["cpu"]["power"] = find_sensor(sensors, "Powers", "Package")
             
             # RAM - Phát hiện linh hoạt
-            elif any(keyword in hw_name for keyword in ["Memory", "RAM", "Generic Memory"]):
+            elif any(kw in hw_name for kw in RAM_KEYWORDS):
                 detected_hardware["ram"] = True
                 result["ram"]["percent"] = find_sensor(sensors, "Load", "Memory")
                 result["ram"]["used"] = find_sensor(sensors, "Data", "Memory Used")
                 result["ram"]["total"] = result["ram"]["used"] + find_sensor(sensors, "Data", "Memory Available")
             
             # GPU rời (Discrete GPU) - NVIDIA, AMD, Intel Arc
-            elif any(brand in hw_name for brand in ["NVIDIA", "GeForce", "GTX", "RTX", "Quadro", 
-                                                      "AMD Radeon RX", "AMD Radeon PRO", "Radeon VII",
-                                                      "Intel Arc", "Intel Iris Xe MAX"]):
+            elif any(kw in hw_name for kw in GPU_DISCRETE_KEYWORDS):
                 detected_hardware["gpu_discrete"] = True
                 result["gpu_discrete"]["name"] = hw_name
-                result["gpu_discrete"]["temp"] = find_sensor(sensors, "Temperatures", "GPU Core")
-                if result["gpu_discrete"]["temp"] == 0:
-                    result["gpu_discrete"]["temp"] = find_sensor(sensors, "Temperatures", "GPU")
-                result["gpu_discrete"]["load"] = find_sensor(sensors, "Load", "GPU Core")
-                if result["gpu_discrete"]["load"] == 0:
-                    result["gpu_discrete"]["load"] = find_sensor(sensors, "Load", "GPU")
-                result["gpu_discrete"]["power"] = find_sensor(sensors, "Powers", "GPU Package")
-                if result["gpu_discrete"]["power"] == 0:
-                    result["gpu_discrete"]["power"] = find_sensor(sensors, "Powers", "GPU Power")
+                result["gpu_discrete"]["temp"] = find_sensor_multi(sensors, "Temperatures", ("GPU Core", "GPU"))
+                result["gpu_discrete"]["load"] = find_sensor_multi(sensors, "Load", ("GPU Core", "GPU"))
+                result["gpu_discrete"]["power"] = find_sensor_multi(sensors, "Powers", ("GPU Package", "GPU Power"))
                 result["gpu_discrete"]["mem_used"] = int(find_sensor(sensors, "Data", "GPU Memory Used"))
                 result["gpu_discrete"]["mem_total"] = int(find_sensor(sensors, "Data", "GPU Memory Total"))
             
             # iGPU (Integrated GPU) - AMD Radeon Graphics, Intel UHD/Iris
-            elif any(keyword in hw_name for keyword in ["Radeon Graphics", "Radeon(TM) Graphics",
-                                                         "Intel UHD", "Intel Iris", "Intel HD Graphics",
-                                                         "Vega", "RDNA"]):
+            elif any(kw in hw_name for kw in GPU_INTEGRATED_KEYWORDS):
                 detected_hardware["gpu_integrated"] = True
                 result["gpu_integrated"]["name"] = hw_name
-                # iGPU thường không có sensor nhiệt độ riêng
-                for sensor_group in sensors:
-                    if sensor_group.get("Text") == "Temperatures":
-                        for temp_sensor in sensor_group.get("Children", []):
-                            temp_name = temp_sensor.get("Text", "")
-                            if "GPU" in temp_name or "Core" in temp_name:
-                                result["gpu_integrated"]["temp"] = parse_value(temp_sensor.get("Value", ""))
-                                break
-                        break
-                result["gpu_integrated"]["load"] = find_sensor(sensors, "Load", "GPU Core")
-                if result["gpu_integrated"]["load"] == 0:
-                    result["gpu_integrated"]["load"] = find_sensor(sensors, "Load", "GPU")
+                result["gpu_integrated"]["temp"] = find_sensor_multi(sensors, "Temperatures", ("GPU", "Core"))
+                result["gpu_integrated"]["load"] = find_sensor_multi(sensors, "Load", ("GPU Core", "GPU"))
             
-            # Disk/SSD/HDD - Phát hiện linh hoạt tất cả hãng
-            elif any(keyword in hw_name.upper() for keyword in ["SAMSUNG", "WD", "SEAGATE", "TOSHIBA", 
-                                                                  "KINGSTON", "CRUCIAL", "SANDISK", 
-                                                                  "INTEL", "MICRON", "HYNIX",
-                                                                  "SSD", "HDD", "NVME", "M.2"]) or \
+            # Disk/SSD/HDD - Phát hiện linh hoạt
+            elif any(kw in hw_name.upper() for kw in DISK_KEYWORDS) or \
                  "storage.png" in hw_type or "hdd.png" in hw_type:
-                # Tìm nhiệt độ với nhiều tên sensor khác nhau
-                temp = find_sensor(sensors, "Temperatures", "Temperature")
-                if temp == 0:
-                    temp = find_sensor(sensors, "Temperatures", "Drive")
-                
                 detected_hardware["disk"] += 1
-                disk_info = {
-                    "name": hw_name[:30],  # Giới hạn độ dài tên
-                    "temp": temp,
+                result["disk"].append({
+                    "name": hw_name[:30],
+                    "temp": find_sensor_multi(sensors, "Temperatures", ("Temperature", "Drive")),
                     "load": find_sensor(sensors, "Load", "Used Space")
-                }
-                result["disk"].append(disk_info)
+                })
             
-            # Network - Phát hiện linh hoạt (Wi-Fi, Ethernet, các card mạng khác)
-            elif any(keyword in hw_name for keyword in ["Wi-Fi", "Ethernet", "Network", 
-                                                         "Wireless", "LAN", "Realtek",
-                                                         "Intel", "Qualcomm", "Broadcom"]) or \
-                 "nic.png" in hw_type:
+            # Network - Phát hiện linh hoạt
+            elif any(kw in hw_name for kw in NETWORK_KEYWORDS) or "nic.png" in hw_type:
                 download = find_sensor(sensors, "Throughput", "Download Speed")
                 upload = find_sensor(sensors, "Throughput", "Upload Speed")
-                # Chỉ lấy interface có traffic
                 if download > 0 or upload > 0:
                     detected_hardware["network"] = True
-                    result["network"]["name"] = hw_name[:30]  # Giới hạn độ dài
+                    result["network"]["name"] = hw_name[:30]
                     result["network"]["download"] = download
                     result["network"]["upload"] = upload
         
@@ -228,13 +177,15 @@ def get_system_info():
         
         # In thống kê phần cứng phát hiện được
         if DEBUG_MODE:
-            print("\n[Statistics]")
-            print(f"  CPU: {'✓' if detected_hardware['cpu'] else '✗'}")
-            print(f"  RAM: {'✓' if detected_hardware['ram'] else '✗'}")
-            print(f"  GPU rời: {'✓' if detected_hardware['gpu_discrete'] else '✗'}")
-            print(f"  iGPU: {'✓' if detected_hardware['gpu_integrated'] else '✗'}")
-            print(f"  Disk: {detected_hardware['disk']} thiết bị")
-            print(f"  Network: {'✓' if detected_hardware['network'] else '✗'}\n")
+            stats = [
+                f"CPU: {'✓' if detected_hardware['cpu'] else '✗'}",
+                f"RAM: {'✓' if detected_hardware['ram'] else '✗'}",
+                f"GPU rời: {'✓' if detected_hardware['gpu_discrete'] else '✗'}",
+                f"iGPU: {'✓' if detected_hardware['gpu_integrated'] else '✗'}",
+                f"Disk: {detected_hardware['disk']} thiết bị",
+                f"Network: {'✓' if detected_hardware['network'] else '✗'}"
+            ]
+            print("\n[Statistics]\n  " + "\n  ".join(stats) + "\n")
         
         return result
     
@@ -264,20 +215,19 @@ def home():
     """
 
 if __name__ == '__main__':
-    local_ip = PC_IP_ADDRESS
     print("="*50)
     print("System Monitor Server v1.0")
     print("="*50)
-    print(f"Server: http://{local_ip}:{SERVER_PORT}")
-    print(f"API: http://{local_ip}:{SERVER_PORT}/system-info")
-    print(f"Libre HW Monitor: http://{local_ip}:{LIBRE_HW_MONITOR_PORT}")
+    print(f"Server: http://{PC_IP_ADDRESS}:{SERVER_PORT}")
+    print(f"API: http://{PC_IP_ADDRESS}:{SERVER_PORT}/system-info")
+    print(f"Libre HW Monitor: http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}")
     print(f"Debug Mode: {'ON' if DEBUG_MODE else 'OFF'}")
     print(f"Max Disks: {MAX_DISKS}")
     print("="*50)
     print("\nĐảm bảo Libre Hardware Monitor đang chạy!")
     print("Cấu hình ESP8266:")
-    print(f'  const char* serverUrl = "http://{local_ip}:{SERVER_PORT}/system-info";')
+    print(f'  SERVER_IP = "{PC_IP_ADDRESS}"\n  SERVER_PORT = "{SERVER_PORT}"')
     print("="*50)
-    print("\nTip: Chỉnh sửa .env để thay đổi cấu hình\n")
+    print("\nTip: Chỉnh sửa server/.env để thay đổi cấu hình\n")
     
     app.run(host='0.0.0.0', port=SERVER_PORT, debug=False)
