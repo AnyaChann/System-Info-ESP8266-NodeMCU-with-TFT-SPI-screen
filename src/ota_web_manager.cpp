@@ -30,8 +30,8 @@ void OTAWebManager::showActiveScreen() {
   display->drawText(10, 85, currentIP.c_str(), ST77XX_GREEN, 1);
   display->drawText(10, 100, "/update", ST77XX_GREEN, 1);
   
-  display->drawText(5, 110, "Exit: 3x click", ST77XX_YELLOW, 1);
-  display->drawText(5, 120, "(within 2sec)", ST77XX_ORANGE, 1);
+  display->drawText(5, 110, "Exit: hold", ST77XX_YELLOW, 1);
+  display->drawText(5, 120, "(within 3sec)", ST77XX_ORANGE, 1);
 }
 
 void OTAWebManager::showClosedScreen() {
