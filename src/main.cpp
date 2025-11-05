@@ -4,12 +4,20 @@
 #include <WiFiClient.h>
 #include <ArduinoJson.h>
 
-// Cấu hình WiFi
-const char* ssid = "YOUR_WIFI_SSID";        // Thay bằng tên WiFi của bạn
-const char* password = "YOUR_WIFI_PASSWORD"; // Thay bằng mật khẩu WiFi
-
-// Địa chỉ server Python (IP máy tính chạy Python script)
-const char* serverUrl = "http://192.168.1.100:8080/system-info"; // Thay đổi IP cho phù hợp
+// Load config từ file config.h
+// Copy từ config.h.example và chỉnh sửa
+#if __has_include("config.h")
+  #include "config.h"
+  const char* ssid = WIFI_SSID;
+  const char* password = WIFI_PASSWORD;
+  // Build URL từ IP và PORT
+  String serverUrl = String("http://") + SERVER_IP + ":" + SERVER_PORT + "/system-info";
+#else
+  #warning "config.h not found! Copy from config.h.example and edit it"
+  const char* ssid = "YOUR_WIFI_SSID";
+  const char* password = "YOUR_WIFI_PASSWORD";
+  String serverUrl = "http://192.168.1.100:8080/system-info";
+#endif
 
 // Thời gian cập nhật (milliseconds)
 unsigned long previousMillis = 0;
@@ -61,7 +69,7 @@ void getSystemInfo() {
   
   Serial.println("\n========== SYSTEM INFO ==========");
   
-  http.begin(wifiClient, serverUrl);
+  http.begin(wifiClient, serverUrl.c_str());
   http.setTimeout(5000);
   
   int httpCode = http.GET();

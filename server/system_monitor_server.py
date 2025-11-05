@@ -3,17 +3,49 @@ System Monitor Server - Lấy thông tin từ Libre Hardware Monitor và cung c�
 Yêu cầu: 
 - Libre Hardware Monitor đang chạy với Remote Web Server enabled
 - Python 3.7+
-- pip install flask requests
+- pip install flask requests python-dotenv
 """
 
 from flask import Flask, jsonify
 import requests
 import socket
+import os
+from dotenv import load_dotenv
+
+# Load cấu hình từ .env ở folder server
+load_dotenv()
 
 app = Flask(__name__)
 
+def get_local_ip():
+    """Lấy địa chỉ IP local"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+# Cấu hình từ .env
+DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
+SERVER_PORT = int(os.getenv('SERVER_PORT', '8080'))
+LIBRE_HW_MONITOR_PORT = int(os.getenv('LIBRE_HW_MONITOR_PORT', '8085'))
+MAX_DISKS = int(os.getenv('MAX_DISKS', '2'))
+PC_IP_ADDRESS = os.getenv('PC_IP_ADDRESS', '').strip()
+
+# Nếu không có IP trong .env, tự động phát hiện
+if not PC_IP_ADDRESS:
+    PC_IP_ADDRESS = get_local_ip()
+
 # Libre Hardware Monitor server URL
-LIBRE_HW_MONITOR_URL = "http://192.168.2.60:8085/data.json"
+LIBRE_HW_MONITOR_URL = f"http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}/data.json"
+
+def debug_print(message):
+    """In log chỉ khi DEBUG_MODE = true"""
+    if DEBUG_MODE:
+        print(message)
 
 def parse_value(value_str):
     """Parse giá trị từ string, loại bỏ đơn vị"""
@@ -59,14 +91,14 @@ def get_system_info():
         
         computer_node = root_children[0]  # LAPTOP-CTER
         hardware_list = computer_node.get("Children", [])
-        print(f"\n[INFO] Phát hiện {len(hardware_list)} thiết bị phần cứng:")
+        debug_print(f"\n[INFO] Phát hiện {len(hardware_list)} thiết bị phần cứng:")
         
         
         detected_hardware = {"cpu": False, "ram": False, "gpu_discrete": False, 
                             "gpu_integrated": False, "disk": 0, "network": False}
         
         for hw in hardware_list:
-            print(f"  - {hw.get('Text', 'Unknown')}")
+            debug_print(f"  - {hw.get('Text', 'Unknown')}")
             hw_name = hw.get("Text", "")
             sensors = hw.get("Children", [])
             hw_type = hw.get("ImageURL", "").lower()  # Sử dụng ImageURL để xác định loại phần cứng
@@ -191,17 +223,18 @@ def get_system_info():
                     result["network"]["download"] = download
                     result["network"]["upload"] = upload
         
-        # Giới hạn số disk tối đa 2 (để tiết kiệm dung lượng JSON)
-        result["disk"] = result["disk"][:2]
+        # Giới hạn số disk (cấu hình trong .env)
+        result["disk"] = result["disk"][:MAX_DISKS]
         
         # In thống kê phần cứng phát hiện được
-        print("\n[THỐNG KÊ]")
-        print(f"  CPU: {'✓' if detected_hardware['cpu'] else '✗'}")
-        print(f"  RAM: {'✓' if detected_hardware['ram'] else '✗'}")
-        print(f"  GPU rời: {'✓' if detected_hardware['gpu_discrete'] else '✗'}")
-        print(f"  iGPU: {'✓' if detected_hardware['gpu_integrated'] else '✗'}")
-        print(f"  Disk: {detected_hardware['disk']} thiết bị")
-        print(f"  Network: {'✓' if detected_hardware['network'] else '✗'}\n")
+        if DEBUG_MODE:
+            print("\n[THỐNG KÊ]")
+            print(f"  CPU: {'✓' if detected_hardware['cpu'] else '✗'}")
+            print(f"  RAM: {'✓' if detected_hardware['ram'] else '✗'}")
+            print(f"  GPU rời: {'✓' if detected_hardware['gpu_discrete'] else '✗'}")
+            print(f"  iGPU: {'✓' if detected_hardware['gpu_integrated'] else '✗'}")
+            print(f"  Disk: {detected_hardware['disk']} thiết bị")
+            print(f"  Network: {'✓' if detected_hardware['network'] else '✗'}\n")
         
         return result
     
@@ -221,32 +254,30 @@ def system_info():
 @app.route('/', methods=['GET'])
 def home():
     """Trang chủ"""
-    return """
+    return f"""
     <h1>System Monitor Server</h1>
     <p>Server đang chạy!</p>
+    <p>Server IP: <strong>{PC_IP_ADDRESS}:{SERVER_PORT}</strong></p>
     <p>API endpoint: <a href="/system-info">/system-info</a></p>
+    <p>Libre HW Monitor: <a href="http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}" target="_blank">
+       http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}</a></p>
     """
 
-def get_local_ip():
-    """Lấy địa chỉ IP local"""
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "127.0.0.1"
-
 if __name__ == '__main__':
-    local_ip = get_local_ip()
+    local_ip = PC_IP_ADDRESS
     print("="*50)
-    print(f"Server đang chạy tại: http://{local_ip}:8080")
-    print(f"API endpoint: http://{local_ip}:8080/system-info")
+    print("System Monitor Server v1.0")
+    print("="*50)
+    print(f"Server: http://{local_ip}:{SERVER_PORT}")
+    print(f"API: http://{local_ip}:{SERVER_PORT}/system-info")
+    print(f"Libre HW Monitor: http://{local_ip}:{LIBRE_HW_MONITOR_PORT}")
+    print(f"Debug Mode: {'ON' if DEBUG_MODE else 'OFF'}")
+    print(f"Max Disks: {MAX_DISKS}")
     print("="*50)
     print("\nĐảm bảo Libre Hardware Monitor đang chạy!")
     print("Cấu hình ESP8266:")
-    print(f'  const char* serverUrl = "http://{local_ip}:8080/system-info";')
+    print(f'  const char* serverUrl = "http://{local_ip}:{SERVER_PORT}/system-info";')
     print("="*50)
+    print("\nTip: Chỉnh sửa .env để thay đổi cấu hình\n")
     
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    app.run(host='0.0.0.0', port=SERVER_PORT, debug=False)

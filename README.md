@@ -50,26 +50,58 @@ Firmware cho ESP8266 NodeMCU để hiển thị thông tin hệ thống PC qua W
    - Options → Remote Web Server
    - Port: 8085 (mặc định)
 
-### Bước 2: Cài đặt Python Server
+### Bước 2: Cấu hình
+
+**A. Cấu hình Python Server (`server/.env`):**
+
+Chỉnh sửa file `.env` trong folder `server`:
 
 ```powershell
-cd "d:\PlatformIO IDE\System Info ESP8266 NodeMCU\server"
+cd server
+copy .env.example .env
+notepad .env
+```
+
+Nội dung:
+```env
+# IP của PC (để trống = tự động phát hiện)
+PC_IP_ADDRESS=
+
+# Server config
+DEBUG_MODE=true
+SERVER_PORT=8080
+LIBRE_HW_MONITOR_PORT=8085
+MAX_DISKS=2
+```
+
+**B. Cấu hình ESP8266 (`include/config.h`):**
+
+Copy và chỉnh sửa:
+
+```powershell
+cd ..\include
+copy config.h.example config.h
+notepad config.h
+```
+
+Sửa WiFi, IP và Port trong `config.h`:
+```cpp
+#define WIFI_SSID "TenWiFiCuaBan"
+#define WIFI_PASSWORD "MatKhauWiFi"
+#define SERVER_IP "192.168.2.60"     // IP từ .env hoặc tự động phát hiện
+#define SERVER_PORT "8080"
+```
+
+### Bước 3: Cài đặt và chạy Python Server
+
+```powershell
+cd server
 pip install -r requirements.txt
-python system_monitor_server.py
+cd ..
+python server/system_monitor_server.py
 ```
 
 Server sẽ chạy tại `http://<IP_máy_bạn>:8080`
-
-### Bước 3: Cấu hình ESP8266
-
-1. Mở file `src/main.cpp`
-2. Sửa thông tin WiFi và server:
-
-```cpp
-const char* ssid = "TÊN_WIFI_CỦA_BẠN";
-const char* password = "MẬT_KHẨU_WIFI";
-const char* serverUrl = "http://192.168.2.60:8080/system-info";  // IP của PC
-```
 
 ### Bước 4: Upload firmware
 
@@ -181,10 +213,12 @@ Trả về JSON chứa thông tin hệ thống:
 - Kiểm tra Libre Hardware Monitor đang chạy
 - Kiểm tra Remote Web Server enabled (port 8085)
 - Thử truy cập: `http://localhost:8085/data.json`
+- Bật debug mode trong `.env`: `DEBUG_MODE=true`
 
 ### ESP8266 không kết nối WiFi
-- Kiểm tra SSID và password
+- Kiểm tra SSID và password trong `include/config.h`
 - Kiểm tra WiFi 2.4GHz (ESP8266 không hỗ trợ 5GHz)
+- Đảm bảo đã copy `config.h.example` thành `config.h`
 
 ### Dữ liệu trả về 0
 - Kiểm tra sensor trong Libre Hardware Monitor
