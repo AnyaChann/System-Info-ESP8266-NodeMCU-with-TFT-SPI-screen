@@ -18,7 +18,7 @@ load_dotenv()
 app = Flask(__name__)
 
 def get_local_ip():
-    """Lấy địa chỉ IP local"""
+    """GET local IP address of the machine"""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -68,7 +68,7 @@ def find_sensor(sensors, sensor_type, keyword):
     return 0.0
 
 def get_system_info():
-    """Lấy thông tin hệ thống từ Libre Hardware Monitor"""
+    """Get SYSTEM Statistics from Libre Hardware Monitor"""
     try:
         response = requests.get(LIBRE_HW_MONITOR_URL, timeout=5)
         data = response.json()
@@ -91,7 +91,7 @@ def get_system_info():
         
         computer_node = root_children[0]  # LAPTOP-CTER
         hardware_list = computer_node.get("Children", [])
-        debug_print(f"\n[INFO] Phát hiện {len(hardware_list)} thiết bị phần cứng:")
+        debug_print(f"\n[INFO] Detected {len(hardware_list)} hardware devices:")
         
         
         detected_hardware = {"cpu": False, "ram": False, "gpu_discrete": False, 
@@ -228,7 +228,7 @@ def get_system_info():
         
         # In thống kê phần cứng phát hiện được
         if DEBUG_MODE:
-            print("\n[THỐNG KÊ]")
+            print("\n[Statistics]")
             print(f"  CPU: {'✓' if detected_hardware['cpu'] else '✗'}")
             print(f"  RAM: {'✓' if detected_hardware['ram'] else '✗'}")
             print(f"  GPU rời: {'✓' if detected_hardware['gpu_discrete'] else '✗'}")
@@ -256,7 +256,7 @@ def home():
     """Trang chủ"""
     return f"""
     <h1>System Monitor Server</h1>
-    <p>Server đang chạy!</p>
+    <p>Server is running!</p>
     <p>Server IP: <strong>{PC_IP_ADDRESS}:{SERVER_PORT}</strong></p>
     <p>API endpoint: <a href="/system-info">/system-info</a></p>
     <p>Libre HW Monitor: <a href="http://{PC_IP_ADDRESS}:{LIBRE_HW_MONITOR_PORT}" target="_blank">

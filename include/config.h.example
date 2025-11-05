@@ -9,7 +9,7 @@
 #define WIFI_PASSWORD "YourWiFiPassword"
 
 // Server Configuration
-#define SERVER_IP "192.168.2.60"           // IP của PC chạy Python server
-#define SERVER_PORT "8080"
+#define SERVER_IP "127.0.0.1"      // IP of The Python server (Change this to your PC ip address if needed)
+#define SERVER_PORT "8080"         // Make sure to change this if .env changed
 
 #endif // CONFIG_H

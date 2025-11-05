@@ -16,7 +16,7 @@
   #warning "config.h not found! Copy from config.h.example and edit it"
   const char* ssid = "YOUR_WIFI_SSID";
   const char* password = "YOUR_WIFI_PASSWORD";
-  String serverUrl = "http://192.168.1.100:8080/system-info";
+  String serverUrl = "http://127.0.0.1:8080/system-info";
 #endif
 
 // Thời gian cập nhật (milliseconds)
