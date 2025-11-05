@@ -42,21 +42,66 @@ void DisplayManager::showSplashScreen() {
   tft->println(F("System"));
   tft->setCursor(10, 80);
   tft->println(F("Monitor"));
+  delay(1500);
 }
 
 void DisplayManager::showWiFiConnecting() {
+  tft->fillScreen(COLOR_BG);
+  tft->setTextSize(2);
+  tft->setTextColor(COLOR_HEADER);
+  tft->setCursor(10, 50);
+  tft->println(F("WiFi"));
+  tft->setCursor(10, 70);
+  tft->println(F("Connecting"));
+  
   tft->setTextSize(1);
-  tft->setCursor(10, 110);
   tft->setTextColor(COLOR_TEXT);
-  tft->println(F("Connecting..."));
+  tft->setCursor(10, 100);
+  tft->println(F("Please wait..."));
 }
 
 void DisplayManager::showWiFiStatus(bool success, String ip) {
-  tft->fillRect(0, 110, SCREEN_WIDTH, 20, COLOR_BG);
-  tft->setCursor(10, 110);
-  tft->setTextColor(success ? COLOR_HEADER : COLOR_CPU);
-  tft->println(success ? F("WiFi OK!") : F("WiFi Failed!"));
-  delay(success ? 500 : 1000);
+  tft->fillScreen(COLOR_BG);
+  tft->setTextSize(2);
+  
+  if (success) {
+    tft->setTextColor(COLOR_HEADER);
+    tft->setCursor(10, 40);
+    tft->println(F("WiFi OK!"));
+    
+    tft->setTextSize(1);
+    tft->setTextColor(COLOR_TEXT);
+    tft->setCursor(5, 70);
+    tft->println(F("Connected!"));
+    
+    // Show only last octet for privacy
+    tft->setTextColor(ST77XX_CYAN);
+    tft->setCursor(5, 85);
+    int lastDot = ip.lastIndexOf('.');
+    if (lastDot != -1) {
+      tft->print(F("IP: ..."));
+      tft->print(ip.substring(lastDot));
+    } else {
+      tft->print(F("IP: OK"));
+    }
+    
+    // Reduced delay for faster boot
+    delay(1000);
+  } else {
+    tft->setTextColor(COLOR_CPU);
+    tft->setCursor(10, 40);
+    tft->println(F("WiFi"));
+    tft->setCursor(10, 60);
+    tft->println(F("Failed!"));
+    
+    tft->setTextSize(1);
+    tft->setTextColor(COLOR_TEXT);
+    tft->setCursor(5, 90);
+    tft->println(F("Will retry..."));
+    
+    // Reduced delay for faster reconnect
+    delay(800);
+  }
 }
 
 void DisplayManager::displaySystemInfo(const SystemData& data) {
@@ -155,11 +200,20 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
     y += 10;
   }
   
-  // WiFi status (bottom)
+  // WiFi status (bottom) - only show last octet for privacy
   tft->setCursor(2, SCREEN_HEIGHT - 10);
   tft->setTextColor(COLOR_HEADER);
   tft->print(F("WiFi:"));
-  tft->print(WiFi.localIP().toString());
+  
+  // Extract last octet (e.g., "192.168.2.60" -> ".60")
+  String ip = WiFi.localIP().toString();
+  int lastDot = ip.lastIndexOf('.');
+  if (lastDot != -1) {
+    tft->print(F("..."));
+    tft->print(ip.substring(lastDot));
+  } else {
+    tft->print(F("OK"));
+  }
 }
 
 void DisplayManager::clear() {
@@ -184,4 +238,15 @@ void DisplayManager::toggle() {
 
 bool DisplayManager::isOn() {
   return displayOn;
+}
+
+void DisplayManager::drawText(int16_t x, int16_t y, const char* text, uint16_t color, uint8_t size) {
+  tft->setCursor(x, y);
+  tft->setTextColor(color);
+  tft->setTextSize(size);
+  tft->println(text);
+}
+
+void DisplayManager::drawText(int16_t x, int16_t y, String text, uint16_t color, uint8_t size) {
+  drawText(x, y, text.c_str(), color, size);
 }

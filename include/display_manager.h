@@ -49,6 +49,10 @@ public:
   void turnOff();
   void toggle();
   bool isOn();
+  
+  // Helper methods for config portal
+  void drawText(int16_t x, int16_t y, const char* text, uint16_t color, uint8_t size = 1);
+  void drawText(int16_t x, int16_t y, String text, uint16_t color, uint8_t size = 1);
 };
 
 #endif // DISPLAY_MANAGER_H
