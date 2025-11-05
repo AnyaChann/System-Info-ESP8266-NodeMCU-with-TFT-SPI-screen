@@ -10,7 +10,7 @@
  * TFT SCK → D5 (GPIO14) - Hardware SPI
  * TFT VCC → 3.3V
  * TFT GND → GND
- * TFT LED → 3.3V (hoặc GPIO để điều khiển)
+ * TFT LED →  D2 (GPIO4) - Backlight control (PWM)
  * 
  * Button  → D1 (GPIO5) - hoặc config.h, nối GND (dùng pull-up internal)
  */
