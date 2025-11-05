@@ -9,14 +9,14 @@
 #include <Arduino.h>
 #include <ArduinoOTA.h>
 
+class DisplayManager;  // Forward declaration
+
 class OTAManager {
 private:
   String hostname;
   String password;
   bool enabled;
-  void (*onStartCallback)();
-  void (*onProgressCallback)(unsigned int progress, unsigned int total);
-  void (*onEndCallback)();
+  DisplayManager* display;
   
 public:
   OTAManager(const char* deviceName, const char* otaPassword = "");
@@ -24,11 +24,7 @@ public:
   void handle();
   void setEnabled(bool enable);
   bool isEnabled();
-  
-  // Callbacks cho UI feedback
-  void setOnStart(void (*callback)());
-  void setOnProgress(void (*callback)(unsigned int progress, unsigned int total));
-  void setOnEnd(void (*callback)());
+  void setDisplayManager(DisplayManager* dm);
 };
 
 #endif // OTA_MANAGER_H

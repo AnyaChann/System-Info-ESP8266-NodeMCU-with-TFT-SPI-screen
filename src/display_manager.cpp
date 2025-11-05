@@ -49,7 +49,7 @@ void DisplayManager::showSplashScreen() {
   tft->setTextSize(1);
   tft->setTextColor(ST77XX_CYAN);
   tft->setCursor(35, 95);
-  tft->println(F("v1.8.0"));
+  tft->println(F("v1.8.1"));
   
   // Author
   tft->setTextColor(COLOR_TEXT);

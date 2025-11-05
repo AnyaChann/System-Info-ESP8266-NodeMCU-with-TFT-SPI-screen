@@ -98,9 +98,11 @@ void setup() {
     Serial.println(F("Will retry in loop..."));
   }
   
-  // Init OTA
+  // Init OTA with display feedback
   #if OTA_ENABLED
+  ota.setDisplayManager(&display);
   ota.begin();
+  Serial.println(F("✓ OTA enabled - Ready for wireless updates"));
   #endif
 }
 

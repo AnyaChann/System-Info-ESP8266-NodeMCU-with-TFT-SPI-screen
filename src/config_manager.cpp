@@ -361,6 +361,7 @@ bool ConfigManager::startWiFiConfigPortal() {
   if (!wifiManager) wifiManager = new WiFiManager();
   wifiManager->resetSettings();
   wifiManager->setConfigPortalTimeout(180);
+  wifiManager->setShowInfoUpdate(true);  // Enable OTA update button on info page
   
   if (wifiManager->startConfigPortal(apSSID, apPassword)) {
     Serial.print(F("✓ WiFi: "));
