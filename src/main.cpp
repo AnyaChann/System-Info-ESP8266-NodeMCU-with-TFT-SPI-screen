@@ -105,9 +105,9 @@ void setup() {
   bool wifiOk = network->connectWiFi(20); // 20 attempts * 0.5s = 10s max
   
   if (wifiOk) {
-    display.showWiFiStatus(true, network->getLocalIP());
     Serial.print(F("✓ WiFi connected! IP: "));
     Serial.println(network->getLocalIP());
+    // Keep "Connecting..." screen until first data fetch
   } else {
     display.showWiFiStatus(false, "");
     Serial.println(F("✗ WiFi connection failed!"));
@@ -121,8 +121,6 @@ void setup() {
   ota.setOnProgress(onOTAProgress);
   ota.setOnEnd(onOTAEnd);
   #endif
-  
-  display.clear();
 }
 
 void loop() {
@@ -185,13 +183,15 @@ void loop() {
   if (display.isOn() && network->shouldUpdate()) {
     if (network->fetchSystemData(sysData)) {
       display.displaySystemInfo(sysData);
+      configMgr.reportServerSuccess();  // Reset server fail counter
     } else {
-      // Fetch failed - show error on display
+      // Fetch failed - report to config manager
       static unsigned long lastErrorDisplay = 0;
       if (currentMillis - lastErrorDisplay > 5000) {
         lastErrorDisplay = currentMillis;
         Serial.println(F("⚠️ Failed to fetch system data"));
       }
+      configMgr.reportServerFailure();  // Track server failures
     }
   }
 }

@@ -44,6 +44,8 @@ public:
   
   // Fallback detection
   bool shouldFallbackToConfig();
+  void reportServerFailure();  // Call this when server fetch fails
+  void reportServerSuccess();  // Call this when server fetch succeeds
   
   // Display feedback (optional)
   void setDisplayManager(class DisplayManager* disp) { displayManager = disp; }
@@ -75,8 +77,9 @@ private:
   String tempServerIP;
   uint16_t tempServerPort;
   int connectionFailCount;
+  int serverFailCount;
   unsigned long lastConnectionAttempt;
-  bool lastConnectedShown;
+  unsigned long lastServerCheck;
   
   // Optional display feedback
   class DisplayManager* displayManager;
