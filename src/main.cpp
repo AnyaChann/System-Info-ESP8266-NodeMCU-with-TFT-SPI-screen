@@ -24,6 +24,7 @@
 #include "network_manager.h"
 #include "button_handler.h"
 #include "ota_manager.h"
+#include "ota_web_manager.h"
 #include "config_manager.h"
 
 // Khởi tạo các manager
@@ -32,14 +33,17 @@ DisplayManager display(TFT_CS, TFT_DC, TFT_RST, TFT_LED, SCREEN_ROTATION);
 NetworkManager* network = nullptr;  // Khởi tạo sau khi có config
 ButtonHandler button(BUTTON_PIN);
 OTAManager ota(OTA_HOSTNAME, OTA_PASSWORD);
+OTAWebManager otaWeb;
 SystemData sysData;
 
 // Callbacks
-void onButtonPressed() {
+void onButtonMediumPress() {
+  // 3s hold = Toggle display
   display.toggle();
 }
 
 void onButtonLongPress() {
+  // 7s hold = Reset to config mode
   Serial.println(F("\n⚙️ Long press detected - Resetting to Config Mode..."));
   display.clear();
   display.drawText(10, 50, "RESET TO", ST77XX_YELLOW, 2);
@@ -47,6 +51,20 @@ void onButtonLongPress() {
   delay(2000);
   configMgr.resetConfig();
   ESP.restart();
+}
+
+void onButtonMultiClick() {
+  // 3x click in 2s = Toggle OTA mode
+  if (!otaWeb.active()) {
+    // Enter OTA mode
+    String ipAddress = (network != nullptr && network->isConnected()) 
+                       ? network->getLocalIP() 
+                       : "Not connected";
+    otaWeb.start(ipAddress);
+  } else {
+    // Exit OTA mode
+    otaWeb.stop();
+  }
 }
 
 void setup() {
@@ -57,6 +75,15 @@ void setup() {
   display.begin();
   display.showSplashScreen();
   
+  // Init button FIRST - có thể dùng bất cứ lúc nào
+  button.begin();
+  button.setMediumPressCallback(onButtonMediumPress);  // 3s: toggle display
+  button.setLongPressCallback(onButtonLongPress);      // 7s: reset config
+  button.setMultiClickCallback(onButtonMultiClick);    // 3x click (2s): OTA mode
+  
+  // Init OTA Web Manager
+  otaWeb.setDisplayManager(&display);
+  
   // Init config manager
   configMgr.setDisplayManager(&display);  // Pass display for reconnect feedback
   configMgr.begin();
@@ -65,6 +92,7 @@ void setup() {
   if (configMgr.isConfigMode()) {
     while (configMgr.isConfigMode()) {
       configMgr.handleClient();
+      button.update();  // Allow button during config mode
       delay(10);
     }
     return;  // Config complete, ESP will reboot
@@ -79,16 +107,19 @@ void setup() {
   
   display.showWiFiConnecting();
   
-  // Init button
-  button.begin();
-  button.setCallback(onButtonPressed);           // Short press: toggle display
-  button.setLongPressCallback(onButtonLongPress); // Long press (5s): config mode
-  
-  // Connect WiFi với timeout hợp lý
+  // Connect WiFi với timeout hợp lý - allow button during connection
   Serial.println(F("Connecting to WiFi..."));
-  bool wifiOk = network->connectWiFi(20); // 20 attempts * 0.5s = 10s max
+  int attempts = 0;
+  const int maxAttempts = 20;
   
-  if (wifiOk) {
+  while (!network->isConnected() && attempts < maxAttempts) {
+    network->connectWiFi(1);  // Try 1 attempt at a time
+    button.update();  // Check button during WiFi connect
+    attempts++;
+    delay(500);
+  }
+  
+  if (network->isConnected()) {
     Serial.print(F("✓ WiFi connected! IP: "));
     Serial.println(network->getLocalIP());
     // Keep "Connecting..." screen until first data fetch
@@ -107,6 +138,15 @@ void setup() {
 }
 
 void loop() {
+  // Button ALWAYS active - can reset anytime
+  button.update();
+  
+  // Nếu đang ở OTA mode - handle web server (non-blocking!)
+  if (otaWeb.active()) {
+    otaWeb.handle();
+    return;
+  }
+  
   // Nếu đang ở config mode, chỉ handle web requests
   if (configMgr.isConfigMode()) {
     configMgr.handleClient();
@@ -118,7 +158,6 @@ void loop() {
     return;
   }
   
-  static unsigned long buttonEnableTime = 5000;
   unsigned long currentMillis = millis();
   
   // Check WiFi - shouldFallbackToConfig() handles display & reset
@@ -134,11 +173,6 @@ void loop() {
   #if OTA_ENABLED
   ota.handle();
   #endif
-  
-  // Check button (skip first 5 seconds to avoid boot glitches)
-  if (currentMillis > buttonEnableTime) {
-    button.update();
-  }
   
   // Update system data (only if WiFi connected and display on)
   if (display.isOn() && network->shouldUpdate()) {
