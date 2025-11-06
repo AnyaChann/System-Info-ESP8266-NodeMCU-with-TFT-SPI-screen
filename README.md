@@ -12,7 +12,6 @@
 
 ### 📸 Screenshots
 
-<!-- markdownlint-disable MD033 -->
 <table>
   <tr>
     <td align="center">
@@ -30,17 +29,16 @@
     <td align="center">
       <img src="docs/demoUI.png" width="400px" alt="Gaming Dashboard UI"/>
       <br/>
-      <b>Gaming-Style Dashboard</b>
+      <b>My Dashboard Ideal</b>
     </td>
     <td align="center">
       <img src="docs/LibreHW.png" width="400px" alt="Libre Hardware Monitor"/>
       <br/>
       <b>Libre Hardware Monitor Setup</b>
+    </td>
   </tr>
 </table>
-<!-- markdownlint-enable MD033 -->
 
-</div>
 </div>
 
 ---
@@ -65,7 +63,6 @@ Real-time PC system monitoring display using ESP8266 NodeMCU and TFT SPI screen.
 ### 🛠️ Hardware Requirements
 
 #### ESP8266 Setup
-
 - **Board**: ESP8266 NodeMCU (or compatible)
 - **Display**: TFT SPI Screen
   - ST7735 (1.8" 128x160) - Recommended
@@ -91,9 +88,8 @@ D1 (GPIO 5)   →  Button (to GND)
 ```
 
 #### PC Setup
-
 - **OS**: Windows 10/11, Linux, macOS
-- **Software**:
+- **Software**: 
   - [Libre Hardware Monitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases) (Windows)
   - Python 3.7+
   - pip packages: `flask`, `requests`, `python-dotenv`
@@ -114,7 +110,6 @@ python system_monitor_server.py
 ```
 
 **Output:**
-
 ```
 ==================================================
 System Monitor Server v1.8.3
@@ -154,7 +149,6 @@ platformio run --target upload
 ```
 
 **Using Arduino IDE:**
-
 1. Install libraries:
    - Adafruit GFX Library
    - Adafruit ST7735 and ST7789 Library
@@ -165,12 +159,11 @@ platformio run --target upload
 3. Select board: `NodeMCU 1.0 (ESP-12E Module)`
 4. Upload
 
+#### 4. Configure WiFi and Server
+
 **First Boot:**
 
-<!-- markdownlint-disable MD033 -->
 <table>
-  <tr>
-    <td width="50%">
   <tr>
     <td width="50%">
       <img src="docs/wifi.jpg" alt="WiFi Hotspot"/>
@@ -191,15 +184,13 @@ platformio run --target upload
     </td>
     <td width="50%">
       <img src="docs/success.jpg" alt="Success"/>
+      <br/>
+      <b>Step 4:</b> Configuration saved! Device will restart and connect
+    </td>
   </tr>
 </table>
-<!-- markdownlint-enable MD033 -->
 
 **Reconfigure anytime:**
-</table>
-
-**Reconfigure anytime:**
-
 - Hold button for 7 seconds
 - Or device auto-enters config mode after 10 failed connections
 
@@ -248,12 +239,10 @@ MAX_DISKS=2
 #### Button Controls
 
 **Single Press (Short):**
-
 - Toggle display ON/OFF manually
 - Display will turn back on automatically when backlight timeout expires
 
 **Long Press (7 seconds):**
-
 - Enter WiFi configuration portal
 - LED will blink rapidly to confirm
 - Device creates hotspot `ESP8266-Config`
@@ -263,7 +252,6 @@ MAX_DISKS=2
 Update firmware wirelessly without USB cable:
 
 **Method 1: PlatformIO OTA**
-
 ```bash
 # Make sure ESP8266 is connected to WiFi
 # Find device IP from serial monitor or router
@@ -273,20 +261,17 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ```
 
 **Method 2: Arduino IDE OTA**
-
 1. Go to `Tools` → `Port`
 2. Select network port: `ESP8266 at 192.168.1.XXX`
 3. Click Upload button
 
 **Method 3: Web Browser OTA**
-
 1. Open browser: `http://ESP8266_IP/update`
 2. Click "Choose File" and select `.bin` firmware file
 3. Click "Update" and wait for completion
 4. Device will restart automatically
 
 **Important Notes:**
-
 - Ensure stable WiFi connection during OTA
 - Don't power off during update process
 - If OTA fails, use USB cable to reflash
@@ -294,7 +279,6 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ### �🎨 Display Layouts
 
 #### Portrait Mode (2 columns × 4 rows)
-
 ```
 ┌────────────────┐
 │      SYS       │
@@ -318,7 +302,6 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ```
 
 #### Landscape Mode (3 columns × 2 rows)
-
 ```
 ┌─────────────────────────┐
 │          SYS            │
@@ -336,26 +319,22 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ### 🔧 Troubleshooting
 
 **Display not working?**
-
 - Check wiring connections
 - Verify display type in `config.h`
 - Try different `SCREEN_ROTATION` values
 
 **WiFi connection fails?**
-
 - Hold button 7 seconds to enter config mode
 - Check WiFi credentials
 - Ensure 2.4GHz network (ESP8266 doesn't support 5GHz)
 
 **No data from server?**
-
 - Verify Libre Hardware Monitor is running
 - Check server IP and port in config portal
 - Test: `curl http://SERVER_IP:8080/system-info`
 - Allow Python through Windows Firewall
 
 **Display too slow?**
-
 - Decrease `REFRESH_INTERVAL` in `config.h`
 - Recommended: 5000ms for smooth updates
 
@@ -383,7 +362,6 @@ System-Info-ESP8266-NodeMCU/
 ### 🤝 Contributing
 
 Contributions are welcome! Please:
-
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit changes (`git commit -m 'Add amazing feature'`)
@@ -422,7 +400,6 @@ Màn hình giám sát thông số PC thời gian thực sử dụng ESP8266 Node
 ### 🛠️ Yêu cầu phần cứng
 
 #### Thiết lập ESP8266
-
 - **Board**: ESP8266 NodeMCU (hoặc tương thích)
 - **Màn hình**: TFT SPI Screen
   - ST7735 (1.8" 128x160) - Khuyến nghị
@@ -448,9 +425,8 @@ D1 (GPIO 5)   →  Nút bấm (nối GND)
 ```
 
 #### Thiết lập PC
-
 - **OS**: Windows 10/11, Linux, macOS
-- **Phần mềm**:
+- **Phần mềm**: 
   - [Libre Hardware Monitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases) (Windows)
   - Python 3.7+
   - pip packages: `flask`, `requests`, `python-dotenv`
@@ -471,7 +447,6 @@ python system_monitor_server.py
 ```
 
 **Kết quả:**
-
 ```
 ==================================================
 System Monitor Server v1.8.2
@@ -511,7 +486,6 @@ platformio run --target upload
 ```
 
 **Sử dụng Arduino IDE:**
-
 1. Cài đặt thư viện:
    - Adafruit GFX Library
    - Adafruit ST7735 and ST7789 Library
@@ -520,12 +494,11 @@ platformio run --target upload
    - ArduinoJson
 2. Copy tất cả file `.cpp` và `.h` vào thư mục sketch
 3. Chọn board: `NodeMCU 1.0 (ESP-12E Module)`
-**Lần khởi động đầu:**
+4. Upload
 
-<!-- markdownlint-disable MD033 -->
-<table>
-  <tr>
-    <td width="50%">
+#### 4. Cấu hình WiFi và Server
+
+**Lần khởi động đầu:**
 
 <table>
   <tr>
@@ -546,17 +519,15 @@ platformio run --target upload
       <br/>
       <b>Bước 3:</b> Nhập Server IP (từ bước 1) và Port <code>8080</code>
     </td>
-  </tr>
-</table>
-<!-- markdownlint-enable MD033 -->
-
-**Cấu hình lại bất cứ lúc nào:**
+    <td width="50%">
+      <img src="docs/success.jpg" alt="Thành công"/>
+      <br/>
+      <b>Bước 4:</b> Cấu hình đã lưu! Thiết bị sẽ khởi động lại và kết nối
     </td>
   </tr>
 </table>
 
 **Cấu hình lại bất cứ lúc nào:**
-
 - Giữ nút bấm 7 giây
 - Hoặc thiết bị tự động vào chế độ config sau 10 lần kết nối thất bại
 
@@ -605,12 +576,10 @@ MAX_DISKS=2
 #### Điều khiển bằng nút bấm
 
 **Nhấn ngắn (1 lần):**
-
 - Bật/tắt màn hình thủ công
 - Màn hình sẽ tự động bật lại khi hết thời gian chờ đèn nền
 
 **Nhấn giữ (7 giây):**
-
 - Vào chế độ cấu hình WiFi
 - LED sẽ nhấp nháy nhanh để xác nhận
 - Thiết bị tạo hotspot `ESP8266-Config`
@@ -620,7 +589,6 @@ MAX_DISKS=2
 Cập nhật firmware qua mạng không dây, không cần cáp USB:
 
 **Phương pháp 1: PlatformIO OTA**
-
 ```bash
 # Đảm bảo ESP8266 đã kết nối WiFi
 # Tìm IP của thiết bị từ serial monitor hoặc router
@@ -630,20 +598,17 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ```
 
 **Phương pháp 2: Arduino IDE OTA**
-
 1. Vào `Tools` → `Port`
 2. Chọn cổng mạng: `ESP8266 at 192.168.1.XXX`
 3. Nhấn nút Upload
 
 **Phương pháp 3: Trình duyệt Web**
-
 1. Mở trình duyệt: `http://ESP8266_IP/update`
 2. Nhấn "Choose File" và chọn file firmware `.bin`
 3. Nhấn "Update" và đợi hoàn thành
 4. Thiết bị sẽ tự động khởi động lại
 
 **Lưu ý quan trọng:**
-
 - Đảm bảo kết nối WiFi ổn định trong quá trình OTA
 - Không tắt nguồn khi đang cập nhật
 - Nếu OTA thất bại, dùng cáp USB để flash lại
@@ -651,7 +616,6 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ### �🎨 Bố cục hiển thị
 
 #### Chế độ dọc (2 cột × 4 hàng)
-
 ```
 ┌────────────────┐
 │      SYS       │
@@ -675,7 +639,6 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ```
 
 #### Chế độ ngang (3 cột × 2 hàng)
-
 ```
 ┌─────────────────────────┐
 │          SYS            │
@@ -693,26 +656,22 @@ platformio run --target upload --upload-port 192.168.1.XXX
 ### 🔧 Khắc phục sự cố
 
 **Màn hình không hoạt động?**
-
 - Kiểm tra các kết nối dây
 - Xác minh loại màn hình trong `config.h`
 - Thử các giá trị `SCREEN_ROTATION` khác nhau
 
 **Kết nối WiFi thất bại?**
-
 - Giữ nút 7 giây để vào chế độ config
 - Kiểm tra thông tin WiFi
 - Đảm bảo mạng 2.4GHz (ESP8266 không hỗ trợ 5GHz)
 
 **Không nhận được dữ liệu từ server?**
-
 - Kiểm tra Libre Hardware Monitor đang chạy
 - Kiểm tra IP và port server trong cổng config
 - Test: `curl http://SERVER_IP:8080/system-info`
 - Cho phép Python qua Windows Firewall
 
 **Màn hình quá chậm?**
-
 - Giảm `REFRESH_INTERVAL` trong `config.h`
 - Khuyến nghị: 5000ms cho cập nhật mượt mà
 
@@ -740,7 +699,6 @@ System-Info-ESP8266-NodeMCU/
 ### 🤝 Đóng góp
 
 Mọi đóng góp đều được chào đón! Vui lòng:
-
 1. Fork repository
 2. Tạo nhánh tính năng (`git checkout -b feature/tinh-nang-tuyet-voi`)
 3. Commit thay đổi (`git commit -m 'Thêm tính năng tuyệt vời'`)
@@ -758,6 +716,7 @@ Dự án này được cấp phép theo giấy phép MIT - xem file [LICENSE](LI
 - [WiFiManager](https://github.com/tzapu/WiFiManager) - Cấu hình WiFi
 
 ---
+
 
 **Made with ❤️ by [AnyaChann](https://github.com/AnyaChann)**
 
