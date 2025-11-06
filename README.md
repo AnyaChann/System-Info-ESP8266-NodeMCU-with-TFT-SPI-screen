@@ -57,7 +57,7 @@ Real-time PC system monitoring display using ESP8266 NodeMCU and TFT SPI screen.
 - 📱 **Multiple Display Support** - ST7735 (1.8"), ST7789 (2.4"), ILI9341 (2.8")
 - ⚙️ **Web Config Portal** - Easy WiFi and server configuration via browser
 - 🔧 **OTA Updates** - Over-the-air firmware updates
-- ⚡ **Configurable Refresh Rate** - From 10 FPS to 1 FPS (5000ms to 1000ms)
+- ⚡ **Configurable Refresh Rate** - From 10 FPS to 1 FPS (100ms to 1000ms)
 - 🌐 **WiFi Manager** - Auto-fallback to config portal on connection failure
 
 ### 🛠️ Hardware Requirements
@@ -166,21 +166,21 @@ platformio run --target upload
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/wifi.jpg" alt="WiFi Hotspot"/>
+      <img src="docs/ipsetup.jpg" alt="Server Setup"/>
       <br/>
-      <b>Step 1:</b> Connect to <code>ESP8266-Config</code> WiFi hotspot (password: <code>82668266</code>)
+      <b>Step 1:</b> Enter Server IP (from step 1) and Port <code>8080</code>
     </td>
     <td width="50%">
-      <img src="docs/wifisetup.jpg" alt="WiFi Setup"/>
+      <img src="docs/wifi.jpg" alt="WiFi Hotspot"/>
       <br/>
-      <b>Step 2:</b> Browser opens automatically to <code>192.168.4.1</code> - Configure WiFi
+      <b>Step 2:</b> Connect to <code>ESP8266-Config</code> WiFi hotspot (password: <code>82668266</code>)
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/ipsetup.jpg" alt="Server Setup"/>
+      <img src="docs/wifisetup.jpg" alt="WiFi Setup"/>
       <br/>
-      <b>Step 3:</b> Enter Server IP (from step 1) and Port <code>8080</code>
+      <b>Step 3:</b> Browser opens to <code>192.168.4.1</code> - Configure your WiFi credentials
     </td>
     <td width="50%">
       <img src="docs/success.jpg" alt="Success"/>
@@ -208,8 +208,8 @@ platformio run --target upload
 #define SCREEN_ROTATION 0  // 0°, 90°, 180°, 270°
 
 // Refresh Rate (milliseconds)
-#define REFRESH_INTERVAL 100  // 5000ms = ~10 FPS (recommended)
-// Options: 33ms (30 FPS), 5000ms (10 FPS), 200ms (5 FPS), 500ms (2 FPS)
+#define REFRESH_INTERVAL 100  // 100ms = ~10 FPS (recommended)
+// Options: 33ms (30 FPS), 100ms (10 FPS), 200ms (5 FPS), 500ms (2 FPS)
 
 // Backlight Auto-off
 #define BACKLIGHT_TIMEOUT 60000  // 60 seconds
@@ -336,7 +336,7 @@ platformio run --target upload --upload-port 192.168.1.XXX
 
 **Display too slow?**
 - Decrease `REFRESH_INTERVAL` in `config.h`
-- Recommended: 5000ms for smooth updates
+- Recommended: 100ms for smooth updates
 
 ### 📚 Project Structure
 
@@ -394,7 +394,7 @@ Màn hình giám sát thông số PC thời gian thực sử dụng ESP8266 Node
 - 📱 **Hỗ Trợ Nhiều Màn Hình** - ST7735 (1.8"), ST7789 (2.4"), ILI9341 (2.8")
 - ⚙️ **Cổng Config Web** - Cấu hình WiFi và server dễ dàng qua trình duyệt
 - 🔧 **Cập Nhật OTA** - Cập nhật firmware qua mạng không dây
-- ⚡ **Tốc Độ Làm Mới Linh Hoạt** - Từ 10 FPS đến 1 FPS (5000ms đến 1000ms)
+- ⚡ **Tốc Độ Làm Mới Linh Hoạt** - Từ 10 FPS đến 1 FPS (100ms đến 1000ms)
 - 🌐 **Quản Lý WiFi** - Tự động chuyển về chế độ config khi mất kết nối
 
 ### 🛠️ Yêu cầu phần cứng
@@ -503,21 +503,21 @@ platformio run --target upload
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/wifi.jpg" alt="WiFi Hotspot"/>
+      <img src="docs/ipsetup.jpg" alt="Cấu hình Server"/>
       <br/>
-      <b>Bước 1:</b> Kết nối vào WiFi hotspot <code>ESP8266-Config</code> (mật khẩu: <code>82668266</code>)
+      <b>Bước 1:</b> Nhập Server IP (từ bước 1) và Port <code>8080</code>
     </td>
     <td width="50%">
-      <img src="docs/wifisetup.jpg" alt="Cấu hình WiFi"/>
+      <img src="docs/wifi.jpg" alt="WiFi Hotspot"/>
       <br/>
-      <b>Bước 2:</b> Trình duyệt tự động mở tại <code>192.168.4.1</code> - Cấu hình WiFi
+      <b>Bước 2:</b> Kết nối vào WiFi hotspot <code>ESP8266-Config</code> (mật khẩu: <code>82668266</code>)
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/ipsetup.jpg" alt="Cấu hình Server"/>
+      <img src="docs/wifisetup.jpg" alt="Cấu hình WiFi"/>
       <br/>
-      <b>Bước 3:</b> Nhập Server IP (từ bước 1) và Port <code>8080</code>
+      <b>Bước 3:</b> Trình duyệt mở tại <code>192.168.4.1</code> - Nhập thông tin WiFi của bạn
     </td>
     <td width="50%">
       <img src="docs/success.jpg" alt="Thành công"/>
@@ -545,8 +545,8 @@ platformio run --target upload
 #define SCREEN_ROTATION 0  // 0°, 90°, 180°, 270°
 
 // Tốc độ làm mới (milliseconds)
-#define REFRESH_INTERVAL 100  // 5000ms = ~10 FPS (khuyến nghị)
-// Tùy chọn: 33ms (30 FPS), 5000ms (10 FPS), 200ms (5 FPS), 500ms (2 FPS)
+#define REFRESH_INTERVAL 100  // 100ms = ~10 FPS (khuyến nghị)
+// Tùy chọn: 33ms (30 FPS), 100ms (10 FPS), 200ms (5 FPS), 500ms (2 FPS)
 
 // Tự động tắt đèn nền
 #define BACKLIGHT_TIMEOUT 60000  // 60 giây
@@ -673,7 +673,7 @@ platformio run --target upload --upload-port 192.168.1.XXX
 
 **Màn hình quá chậm?**
 - Giảm `REFRESH_INTERVAL` trong `config.h`
-- Khuyến nghị: 5000ms cho cập nhật mượt mà
+- Khuyến nghị: 100ms cho cập nhật mượt mà
 
 ### 📚 Cấu trúc dự án
 
