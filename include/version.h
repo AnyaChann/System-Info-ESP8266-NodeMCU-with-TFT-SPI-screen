@@ -8,7 +8,7 @@
 
 // Version information
 #define PROJECT_VERSION "1.9.1"
-#define PROJECT_NAME "System Monitor"
+#define PROJECT_NAME "SysMonitor"
 #define PROJECT_AUTHOR "AnyaChann"
 
 // Build date (auto-generated at compile time)

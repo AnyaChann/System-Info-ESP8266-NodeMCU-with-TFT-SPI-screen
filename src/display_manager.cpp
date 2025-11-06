@@ -746,7 +746,8 @@ void DisplayManager::drawCenteredText(int16_t y, const char* text, uint16_t colo
   
   // Calculate text width (approximate: 6 pixels per char * size)
   int textWidth = strlen(text) * 6 * size;
-  int x = (SCREEN_WIDTH - textWidth) / 2;
+  // Use actual screen width after rotation is applied
+  int x = (tft->width() - textWidth) / 2;
   
   if (x < 0) x = 0;
   
