@@ -68,6 +68,14 @@ private:
   void drawTemperatureGauge(int16_t x, int16_t y, int16_t size, float temp, float maxTemp, uint16_t color);
   void drawCenteredText(int16_t y, const char* text, uint16_t color, uint8_t size = 1);
   
+  // Helper functions for tile rendering
+  void drawTile_CPU(int x, int y, int w, int h, const SystemData& data);
+  void drawTile_RAM(int x, int y, int w, int h, const SystemData& data);
+  void drawTile_GPU(int x, int y, int w, int h, const SystemData& data);
+  void drawTile_VRAM(int x, int y, int w, int h, const SystemData& data);
+  void drawTile_Storage(int x, int y, int w, int h, const SystemData& data);
+  void drawTile_Network_Combined(int x, int y, int w, int h, const SystemData& data);
+  
 public:
   DisplayManager(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t led, uint8_t rot = 1);
   ~DisplayManager();

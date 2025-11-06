@@ -135,27 +135,87 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
   int margin = 2;  // Minimal margin for more space
   int tileSpacing = 2; // Minimal gap between tiles
   
-  // Calculate tile dimensions based on screen size
-  int tileWidth = (SCREEN_WIDTH - margin * 2 - tileSpacing) / 2; // 2 columns
-  int tileHeight = (SCREEN_HEIGHT - 10 - margin * 2) / 4; // 4 rows (header + 4 rows)
+  // Get actual display dimensions after rotation is applied
+  int16_t screenWidth = tft->width();
+  int16_t screenHeight = tft->height();
+  
+  // Auto-detect orientation based on actual screen dimensions after rotation
+  // Portrait: height > width (rotation 0 or 2)
+  // Landscape: width > height (rotation 1 or 3)
+  bool isLandscape = (screenWidth > screenHeight);
+  
+  int tileWidth, tileHeight, numCols, numRows;
+  
+  if (isLandscape) {
+    // Landscape mode: 3 columns x 2-3 rows
+    numCols = 3;
+    numRows = 2;
+    tileWidth = (screenWidth - margin * 2 - tileSpacing * (numCols - 1)) / numCols;
+    tileHeight = (screenHeight - 10 - margin * 2 - tileSpacing) / numRows;
+  } else {
+    // Portrait mode: 2 columns x 4 rows
+    numCols = 2;
+    numRows = 4;
+    tileWidth = (screenWidth - margin * 2 - tileSpacing) / numCols;
+    tileHeight = (screenHeight - 10 - margin * 2) / numRows;
+  }
   
   int x = margin;
   int y = margin;
   
   // Header bar at top
-  tft->fillRect(0, 0, SCREEN_WIDTH, 10, COLOR_HEADER);
+  tft->fillRect(0, 0, screenWidth, 10, COLOR_HEADER);
   tft->setTextSize(1);
   tft->setTextColor(COLOR_BG);
   drawCenteredText(1, "SYS", 1);
   y = 12;
   
-  // Row 1: CPU and RAM tiles (side by side)
-  // CPU Tile (left)
-  tft->drawRect(x, y, tileWidth, tileHeight, COLOR_CPU);
-  tft->setTextSize(1);
-  tft->setTextColor(COLOR_CPU);
-  tft->setCursor(x + 2, y + 2);
-  tft->print(F("CPU"));
+  // Draw tiles based on orientation
+  if (isLandscape) {
+    // === LANDSCAPE MODE: 3 columns ===
+    // Row 1: CPU | RAM | GPU
+    // Row 2: VRAM | STORAGE | NET
+    
+    // CPU Tile (col 1)
+    drawTile_CPU(x, y, tileWidth, tileHeight, data);
+    
+    // RAM Tile (col 2)
+    int col2X = x + tileWidth + tileSpacing;
+    drawTile_RAM(col2X, y, tileWidth, tileHeight, data);
+    
+    // GPU Tile (col 3)
+    if (data.gpuName.length() > 0) {
+      int col3X = col2X + tileWidth + tileSpacing;
+      drawTile_GPU(col3X, y, tileWidth, tileHeight, data);
+    }
+    
+    y += tileHeight + tileSpacing;
+    
+    // VRAM Tile (col 1)
+    if (data.gpuName.length() > 0 && data.gpuMemTotal > 0) {
+      drawTile_VRAM(x, y, tileWidth, tileHeight, data);
+    }
+    
+    // Storage Tile (col 2)
+    if (data.disk1Name.length() > 0) {
+      drawTile_Storage(col2X, y, tileWidth, tileHeight, data);
+    }
+    
+    // Network Tile (col 3) - combined UP+DOWN
+    if (data.netName.length() > 0) {
+      int col3X = col2X + tileWidth + tileSpacing;
+      drawTile_Network_Combined(col3X, y, tileWidth, tileHeight, data);
+    }
+    
+  } else {
+    // === PORTRAIT MODE: 2 columns ===
+    // Row 1: CPU and RAM tiles (side by side)
+    // CPU Tile (left)
+    tft->drawRect(x, y, tileWidth, tileHeight, COLOR_CPU);
+    tft->setTextSize(1);
+    tft->setTextColor(COLOR_CPU);
+    tft->setCursor(x + 2, y + 2);
+    tft->print(F("CPU"));
   
   // CPU percentage (large) - centered vertically
   tft->setTextSize(2);
@@ -172,10 +232,6 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
   tft->setCursor(x + tileWidth - 24, y + tileHeight - 10);
   tft->print((int)data.cpuTemp);
   tft->print(F("C"));
-  
-  // CPU progress bar at bottom
-  int barY = y + tileHeight - 4;
-  drawProgressBar(x + 2, barY, tileWidth - 4, 2, data.cpuLoad, COLOR_CPU, COLOR_BG);
   
   // RAM Tile (right)
   int ramX = x + tileWidth + tileSpacing;
@@ -201,8 +257,6 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
   tft->setCursor(ramX + tileWidth - 28, y + tileHeight - 10);
   tft->print(data.ramUsed, 1);
   tft->print(F("G"));
-  
-  drawProgressBar(ramX + 2, barY, tileWidth - 4, 2, ramPercent, COLOR_RAM, COLOR_BG);
   
   y += tileHeight + tileSpacing;
   
@@ -231,9 +285,6 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
     tft->setCursor(x + tileWidth - 24, y + tileHeight - 10);
     tft->print((int)data.gpuTemp);
     tft->print(F("C"));
-    
-    barY = y + tileHeight - 4;
-    drawProgressBar(x + 2, barY, tileWidth - 4, 2, data.gpuLoad, COLOR_GPU, COLOR_BG);
     
     // VRAM Tile (right)
     if (data.gpuMemTotal > 0) {
@@ -266,16 +317,14 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
         tft->print(data.gpuMemUsed / 1024);
         tft->print(F("G"));
       }
-      
-      drawProgressBar(ramX + 2, barY, tileWidth - 4, 2, vramPercent, COLOR_VRAM, COLOR_BG);
     }
     
     y += tileHeight + tileSpacing;
   }
   
   // Row 3: Storage (full width)
-  if (data.disk1Name.length() > 0 && y < SCREEN_HEIGHT - 30) {
-    int storageWidth = SCREEN_WIDTH - margin * 2;
+  if (data.disk1Name.length() > 0 && y < screenHeight - 30) {
+    int storageWidth = screenWidth - margin * 2;
     tft->drawRect(x, y, storageWidth, tileHeight, COLOR_DISK);
     tft->setTextSize(1);
     tft->setTextColor(COLOR_DISK);
@@ -311,12 +360,6 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
       tft->print((int)data.disk2Temp);
       tft->print(F("C"));
     }
-    
-    barY = y + tileHeight - 4;
-    // Use average of both disks if disk2 exists
-    float avgLoad = data.disk2Name.length() > 0 ? 
-                    (data.disk1Load + data.disk2Load) / 2.0 : data.disk1Load;
-    drawProgressBar(x + 2, barY, storageWidth - 4, 2, avgLoad, COLOR_DISK, COLOR_BG);
     
     y += tileHeight + tileSpacing;
   }
@@ -375,6 +418,221 @@ void DisplayManager::displaySystemInfo(const SystemData& data) {
     tft->setCursor(ramX + 2, y + tileHeight - 10);
     tft->print(F("Mb/s"));
   }
+  } // End of portrait/landscape conditional
+}
+
+// Helper function to draw CPU tile
+void DisplayManager::drawTile_CPU(int x, int y, int w, int h, const SystemData& data) {
+  tft->drawRect(x, y, w, h, COLOR_CPU);
+  tft->setTextSize(1);
+  tft->setTextColor(COLOR_CPU);
+  tft->setCursor(x + 2, y + 2);
+  tft->print(F("CPU"));
+  
+  int centerY = y + (h / 2) - 8;
+  tft->setTextSize(2);
+  tft->setTextColor(COLOR_TEXT);
+  tft->setCursor(x + 4, centerY);
+  tft->print((int)data.cpuLoad);
+  tft->setTextSize(1);
+  tft->print(F("%"));
+  
+  tft->setTextSize(1);
+  tft->setTextColor(ST77XX_YELLOW);
+  tft->setCursor(x + w - 24, y + h - 10);
+  tft->print((int)data.cpuTemp);
+  tft->print(F("C"));
+}
+
+// Helper function to draw RAM tile
+void DisplayManager::drawTile_RAM(int x, int y, int w, int h, const SystemData& data) {
+  tft->drawRect(x, y, w, h, COLOR_RAM);
+  tft->setTextSize(1);
+  tft->setTextColor(COLOR_RAM);
+  tft->setCursor(x + 2, y + 2);
+  tft->print(F("RAM"));
+  
+  float ramPercent = (data.ramTotal > 0) ? (data.ramUsed / data.ramTotal * 100.0) : 0;
+  int centerY = y + (h / 2) - 8;
+  tft->setTextSize(2);
+  tft->setTextColor(COLOR_TEXT);
+  tft->setCursor(x + 4, centerY);
+  tft->print((int)ramPercent);
+  tft->setTextSize(1);
+  tft->print(F("%"));
+  
+  tft->setTextSize(1);
+  tft->setTextColor(ST77XX_CYAN);
+  tft->setCursor(x + w - 28, y + h - 10);
+  tft->print(data.ramUsed, 1);
+  tft->print(F("G"));
+}
+
+// Helper function to draw GPU tile
+void DisplayManager::drawTile_GPU(int x, int y, int w, int h, const SystemData& data) {
+  tft->drawRect(x, y, w, h, COLOR_GPU);
+  tft->setTextSize(1);
+  tft->setTextColor(COLOR_GPU);
+  tft->setCursor(x + 2, y + 2);
+  tft->print(F("GPU"));
+  
+  int centerY = y + (h / 2) - 8;
+  tft->setTextSize(2);
+  tft->setTextColor(COLOR_TEXT);
+  tft->setCursor(x + 4, centerY);
+  tft->print((int)data.gpuLoad);
+  tft->setTextSize(1);
+  tft->print(F("%"));
+  
+  tft->setTextSize(1);
+  tft->setTextColor(ST77XX_YELLOW);
+  tft->setCursor(x + w - 24, y + h - 10);
+  tft->print((int)data.gpuTemp);
+  tft->print(F("C"));
+}
+
+// Helper function to draw VRAM tile
+void DisplayManager::drawTile_VRAM(int x, int y, int w, int h, const SystemData& data) {
+  float vramPercent = (data.gpuMemUsed / (float)data.gpuMemTotal * 100.0);
+  tft->drawRect(x, y, w, h, COLOR_VRAM);
+  tft->setTextSize(1);
+  tft->setTextColor(COLOR_VRAM);
+  tft->setCursor(x + 2, y + 2);
+  tft->print(F("VRAM"));
+  
+  int centerY = y + (h / 2) - 8;
+  tft->setTextSize(2);
+  tft->setTextColor(COLOR_TEXT);
+  tft->setCursor(x + 4, centerY);
+  tft->print((int)vramPercent);
+  tft->setTextSize(1);
+  tft->print(F("%"));
+  
+  tft->setTextSize(1);
+  tft->setTextColor(ST77XX_CYAN);
+  if (data.gpuMemUsed < 10000) {
+    tft->setCursor(x + w - 32, y + h - 10);
+    tft->print(data.gpuMemUsed);
+    tft->print(F("M"));
+  } else {
+    tft->setCursor(x + w - 28, y + h - 10);
+    tft->print(data.gpuMemUsed / 1024);
+    tft->print(F("G"));
+  }
+}
+
+// Helper function to draw Storage tile
+void DisplayManager::drawTile_Storage(int x, int y, int w, int h, const SystemData& data) {
+  tft->drawRect(x, y, w, h, COLOR_DISK);
+  tft->setTextSize(1);
+  tft->setTextColor(COLOR_DISK);
+  tft->setCursor(x + 2, y + 2);
+  tft->print(F("SSD"));
+  
+  // For narrow tiles (landscape), use vertical layout
+  // For wide tiles (portrait full-width), use horizontal layout
+  bool narrowTile = (w < 100);
+  
+  if (narrowTile) {
+    // Vertical layout for narrow tiles (landscape mode)
+    int lineY = y + 12;
+    
+    // D1 load
+    tft->setTextColor(COLOR_TEXT);
+    tft->setCursor(x + 2, lineY);
+    tft->print(F("D1:"));
+    tft->print((int)data.disk1Load);
+    tft->print(F("%"));
+    
+    // D1 temp below
+    tft->setTextColor(ST77XX_YELLOW);
+    tft->setCursor(x + 2, lineY + 10);
+    tft->print((int)data.disk1Temp);
+    tft->print(F("C"));
+    
+    if (data.disk2Name.length() > 0) {
+      lineY += 20;
+      // D2 load
+      tft->setTextColor(COLOR_TEXT);
+      tft->setCursor(x + 2, lineY);
+      tft->print(F("D2:"));
+      tft->print((int)data.disk2Load);
+      tft->print(F("%"));
+      
+      // D2 temp below
+      tft->setTextColor(ST77XX_YELLOW);
+      tft->setCursor(x + 2, lineY + 10);
+      tft->print((int)data.disk2Temp);
+      tft->print(F("C"));
+    }
+  } else {
+    // Horizontal layout for wide tiles (portrait mode)
+    int centerY = y + (h / 2) - 4;
+    
+    tft->setTextColor(COLOR_TEXT);
+    tft->setCursor(x + 4, centerY);
+    tft->print(F("D1:"));
+    tft->print((int)data.disk1Load);
+    tft->print(F("%"));
+    
+    tft->setTextColor(ST77XX_YELLOW);
+    tft->setCursor(x + w - 28, centerY);
+    tft->print((int)data.disk1Temp);
+    tft->print(F("C"));
+    
+    if (data.disk2Name.length() > 0) {
+      tft->setTextColor(COLOR_TEXT);
+      tft->setCursor(x + 4, centerY + 10);
+      tft->print(F("D2:"));
+      tft->print((int)data.disk2Load);
+      tft->print(F("%"));
+      
+      tft->setTextColor(ST77XX_YELLOW);
+      tft->setCursor(x + w - 28, centerY + 10);
+      tft->print((int)data.disk2Temp);
+      tft->print(F("C"));
+    }
+  }
+  
+}
+
+// Helper function to draw combined Network tile (UP+DOWN in one tile)
+void DisplayManager::drawTile_Network_Combined(int x, int y, int w, int h, const SystemData& data) {
+  tft->drawRect(x, y, w, h, COLOR_NET);
+  tft->setTextSize(1);
+  tft->setTextColor(COLOR_NET);
+  tft->setCursor(x + 2, y + 2);
+  tft->print(F("NET"));
+  
+  int centerY = y + (h / 2) - 8;
+  
+  // Upload
+  tft->setTextColor(ST77XX_GREEN);
+  tft->setCursor(x + 2, centerY);
+  tft->print(F("U:"));
+  tft->setTextColor(COLOR_TEXT);
+  if (data.netUp < 10) {
+    tft->print(data.netUp, 1);
+  } else {
+    tft->print((int)data.netUp);
+  }
+  
+  // Download
+  tft->setTextColor(ST77XX_GREEN);
+  tft->setCursor(x + 2, centerY + 10);
+  tft->print(F("D:"));
+  tft->setTextColor(COLOR_TEXT);
+  if (data.netDown < 10) {
+    tft->print(data.netDown, 1);
+  } else {
+    tft->print((int)data.netDown);
+  }
+  
+  // Unit
+  tft->setTextSize(1);
+  tft->setTextColor(ST77XX_GREEN);
+  tft->setCursor(x + w - 28, y + h - 10);
+  tft->print(F("Mb/s"));
 }
 
 void DisplayManager::clear() {
