@@ -535,18 +535,17 @@ platformio run --target upload
       <b>Bước 2:</b> Nhập Server IP (từ bước 1) và Port <code>8080</code>
     </td>
   </tr>
+   <tr>
   <td width="50%">
       <img src="docs/success.jpg" alt="Thành công"/>
       <br/>
       <b>Bước 3:</b> Cấu hình đã lưu! Thiết bị sẽ khởi động lại và kết nối
     </td>
-  <tr>
     <td width="50%">
       <img src="docs/wifisetup.jpg" alt="Cấu hình WiFi"/>
       <br/>
       <b>Bước 4:</b> Trình duyệt mở tại <code>192.168.4.1</code> - Nhập thông tin WiFi của bạn -> Restart
     </td>
-
   </tr>
 </table>
 
