@@ -79,4 +79,15 @@
 #define SCREEN_ROTATION 0  // 0-3 (xoay màn hình 0°, 90°, 180°, 270°)
 #define BACKLIGHT_TIMEOUT 60000  // Tự tắt sau 60s không hoạt động (ms)
 
+// ===== Refresh Rate Configuration =====
+// Tần suất cập nhật dữ liệu từ server (milliseconds)
+// Lower value = faster updates but more network/CPU usage
+// Recommended values:
+// 33ms  = ~30 FPS (Rất nhanh - có thể lag do HTTP request)
+// 100ms = ~10 FPS (Mượt mà - khuyến nghị cho màn hình nhỏ)
+// 200ms = ~5 FPS  (Cân bằng tốt)
+// 500ms = ~2 FPS  (Tiết kiệm - mặc định cũ)
+// 1000ms = 1 FPS  (Chậm nhưng ổn định)
+#define REFRESH_INTERVAL 5000  // Default: 500ms
+
 #endif // CONFIG_H

@@ -226,7 +226,7 @@ def home():
 
 if __name__ == '__main__':
     print("="*50)
-    print("System Monitor Server v1.8.2")
+    print("System Monitor Server v1.8.3")
     print("="*50)
     print(f"Server: http://{PC_IP_ADDRESS}:{SERVER_PORT}")
     print(f"API: http://{PC_IP_ADDRESS}:{SERVER_PORT}/system-info")
@@ -234,10 +234,15 @@ if __name__ == '__main__':
     print(f"Debug Mode: {'ON' if DEBUG_MODE else 'OFF'}")
     print(f"Max Disks: {MAX_DISKS}")
     print("="*50)
-    print("\nĐảm bảo Libre Hardware Monitor đang chạy!")
-    print("Cấu hình ESP8266:")
+    print("\nMake sure Libre Hardware Monitor is running!")
+    print("ESP8266:")
     print(f'  SERVER_IP = "{PC_IP_ADDRESS}"\n  SERVER_PORT = "{SERVER_PORT}"')
     print("="*50)
-    print("\nTip: Chỉnh sửa server/.env để thay đổi cấu hình\n")
+    print("\nTip: Edit server/.env để to change settings\n")
+    
+    # Tắt Werkzeug logging (HTTP request logs)
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)  # Chỉ hiển thị errors, tắt INFO logs
     
     app.run(host='0.0.0.0', port=SERVER_PORT, debug=False)

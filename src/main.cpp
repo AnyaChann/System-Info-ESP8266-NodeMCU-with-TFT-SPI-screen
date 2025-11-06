@@ -118,7 +118,8 @@ void setup() {
   network = new NetworkManager(
     configMgr.getWiFiSSID().c_str(),
     configMgr.getWiFiPassword().c_str(),
-    configMgr.getServerURL()
+    configMgr.getServerURL(),
+    REFRESH_INTERVAL  // Use config value for refresh rate
   );
   
   display.showWiFiConnecting();

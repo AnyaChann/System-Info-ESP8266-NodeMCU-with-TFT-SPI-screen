@@ -7,9 +7,9 @@
 #define VERSION_H
 
 // Version information
-#define PROJECT_VERSION "1.9.1"
-#define PROJECT_NAME "SysMonitor"
-#define PROJECT_AUTHOR "AnyaChann"
+#define PROJECT_VERSION "1.9.2"
+#define PROJECT_NAME "HWMonitor"
+#define PROJECT_AUTHOR "AnyaChann - BachTo"
 
 // Build date (auto-generated at compile time)
 #define BUILD_DATE __DATE__
