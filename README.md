@@ -177,7 +177,7 @@ platformio run --target upload
     <td width="50%">
       <img src="docs/ipsetup.jpg" alt="Server Setup"/>
       <br/>
-      <b>Step 2:</b> Enter Server IP (from step 1) and Port <code>8080</code>
+      <b>Step 2:</b> Enter Server IP (from python server) and Port <code>8080</code>
     </td>
   </tr>
   <tr>
@@ -532,7 +532,7 @@ platformio run --target upload
     <td width="50%">
       <img src="docs/ipsetup.jpg" alt="Cấu hình Server"/>
       <br/>
-      <b>Bước 2:</b> Nhập Server IP (từ bước 1) và Port <code>8080</code>
+      <b>Bước 2:</b> Nhập Server IP (từ python server) và Port <code>8080</code>
     </td>
   </tr>
    <tr>
