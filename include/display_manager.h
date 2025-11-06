@@ -63,6 +63,11 @@ private:
   uint8_t rotation;
   bool displayOn;
   
+  // Helper methods for gaming UI
+  void drawProgressBar(int16_t x, int16_t y, int16_t w, int16_t h, float percent, uint16_t color, uint16_t bgColor);
+  void drawTemperatureGauge(int16_t x, int16_t y, int16_t size, float temp, float maxTemp, uint16_t color);
+  void drawCenteredText(int16_t y, const char* text, uint16_t color, uint8_t size = 1);
+  
 public:
   DisplayManager(uint8_t cs, uint8_t dc, uint8_t rst, uint8_t led, uint8_t rot = 1);
   ~DisplayManager();

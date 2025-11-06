@@ -7,7 +7,7 @@
 #define VERSION_H
 
 // Version information
-#define PROJECT_VERSION "1.8.4"
+#define PROJECT_VERSION "1.9.0"
 #define PROJECT_NAME "System Monitor"
 #define PROJECT_AUTHOR "AnyaChann"
 

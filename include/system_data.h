@@ -33,14 +33,15 @@ struct SystemData {
     hasData(false) {}
 };
 
-// Color definitions (RGB565)
-#define COLOR_BG       0x0000  // Black
+// Gaming Color Palette (RGB565)
+#define COLOR_BG       0x0000  // Pure Black (gaming style)
 #define COLOR_TEXT     0xFFFF  // White
-#define COLOR_HEADER   0x07FF  // Cyan
-#define COLOR_CPU      0xF800  // Red
-#define COLOR_RAM      0x07E0  // Green
-#define COLOR_GPU      0xFFE0  // Yellow
-#define COLOR_DISK     0xF81F  // Magenta
-#define COLOR_NET      0x001F  // Blue
+#define COLOR_HEADER   0x07FF  // Cyan (tech accent)
+#define COLOR_CPU      0xF800  // Red (hot component)
+#define COLOR_RAM      0x07E0  // Green (memory)
+#define COLOR_GPU      0xFC00  // Orange (GPU heat)
+#define COLOR_DISK     0x051F  // Deep Blue (storage)
+#define COLOR_NET      0x841F  // Purple (network)
+#define COLOR_VRAM     0xF81F  // Magenta (VRAM)
 
 #endif // SYSTEM_DATA_H

@@ -76,7 +76,7 @@
 #define BUTTON_PIN D1  // GPIO 5 (nối GND để bấm)
 
 // Display Settings
-#define SCREEN_ROTATION 3  // 0-3 (xoay màn hình 0°, 90°, 180°, 270°)
+#define SCREEN_ROTATION 2  // 0-3 (xoay màn hình 0°, 90°, 180°, 270°)
 #define BACKLIGHT_TIMEOUT 60000  // Tự tắt sau 60s không hoạt động (ms)
 
 #endif // CONFIG_H
