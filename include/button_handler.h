@@ -31,10 +31,11 @@ private:
   uint8_t multiClickThreshold;         // Number of clicks needed (3)
   
 public:
-  ButtonHandler(uint8_t buttonPin, unsigned long debounce = 50, unsigned long mediumPress = 3000, unsigned long longPress = 7000);
+  ButtonHandler(uint8_t buttonPin, unsigned long debounce = 50, unsigned long mediumPress = 2000, unsigned long longPress = 7000);
   void begin();
   void update();
   void setCallback(void (*func)());
+  void setShortPressCallback(void (*func)()) { callback = func; }  // Alias for menu navigation
   void setMediumPressCallback(void (*func)());
   void setLongPressCallback(void (*func)());
   void setMultiClickCallback(void (*func)());

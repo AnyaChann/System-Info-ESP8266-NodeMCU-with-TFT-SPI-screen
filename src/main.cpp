@@ -27,44 +27,50 @@
 #include "ota_manager.h"
 #include "ota_web_manager.h"
 #include "config_manager.h"
+#include "settings_manager.h"
+#include "menu_manager.h"
 
 // Khởi tạo các manager
 ConfigManager configMgr("ESP8266-Config", "82668266");  // AP name & password
+SettingsManager settingsMgr;
 DisplayManager display(TFT_CS, TFT_DC, TFT_RST, TFT_LED, SCREEN_ROTATION);
 NetworkManager* network = nullptr;  // Khởi tạo sau khi có config
 ButtonHandler button(BUTTON_PIN);
 OTAManager ota(OTA_HOSTNAME, OTA_PASSWORD);
 OTAWebManager otaWeb;
+MenuManager* menu = nullptr;  // Khởi tạo sau khi có display
 SystemData sysData;
 
+// Global flags
+bool forceRefreshSystemInfo = false;
+
+// Menu exit callback
+void onMenuExit() {
+  forceRefreshSystemInfo = true;
+  // Reset reconnect fail counter after menu (not a WiFi issue)
+  configMgr.reportServerSuccess();
+  DEBUG_PRINTLN(F("[MAIN] Menu exit - forcing refresh"));
+}
+
 // Callbacks
-void onButtonMediumPress() {
-  // 3s hold = Enter/Exit OTA mode
-  if (!otaWeb.active()) {
-    // Enter OTA mode
-    String ipAddress = (network != nullptr && network->isConnected()) 
-                       ? network->getLocalIP() 
-                       : "Not connected";
-    otaWeb.start(ipAddress);
-  } else {
-    // Exit OTA mode
-    otaWeb.stop();
+void onButtonShortPress() {
+  // Short press = Navigate menu (if active)
+  if (menu && menu->isActive()) {
+    menu->next();
   }
 }
 
-void onButtonLongPress() {
-  // 7s hold = Reset to config mode
-  display.clear();
-  display.drawText(10, 50, "RESET TO", ST77XX_YELLOW, 2);
-  display.drawText(10, 80, "CONFIG MODE", ST77XX_YELLOW, 2);
-  delay(2000);
-  configMgr.resetConfig();
-  ESP.restart();
-}
-
-void onButtonMultiClick() {
-  // 3x click in 2s = Toggle display ON/OFF
-  display.toggle();
+void onButtonMediumPress() {
+  // 2s hold = Select menu item / Enter menu
+  if (menu) {
+    if (menu->isActive()) {
+      // In menu: select current item
+      menu->select();
+    } else {
+      // Not in menu: enter menu
+      menu->enter();
+    }
+  }
 }
 
 void setup() {
@@ -91,17 +97,20 @@ void setup() {
   display.begin();
   display.showSplashScreen();
   
+  // Init settings manager (before menu)
+  settingsMgr.begin();
+  
   // Init button FIRST - có thể dùng bất cứ lúc nào
   button.begin();
-  button.setMediumPressCallback(onButtonMediumPress);  // 3s hold: OTA mode
-  button.setLongPressCallback(onButtonLongPress);      // 7s hold: reset config
-  button.setMultiClickCallback(onButtonMultiClick);    // 3x click (2s): toggle display
+  button.setShortPressCallback(onButtonShortPress);    // Short press: menu navigation
+  button.setMediumPressCallback(onButtonMediumPress);  // 2s hold: menu select/enter
   
   // Init OTA Web Manager
   otaWeb.setDisplayManager(&display);
   
   // Init config manager
-  configMgr.setDisplayManager(&display);  // Pass display for reconnect feedback
+  configMgr.setDisplayManager(&display);
+  configMgr.setButtonHandler(&button);  // Pass display for reconnect feedback
   configMgr.begin();
   
   // Check if in config mode (no valid config or user reset)
@@ -114,13 +123,17 @@ void setup() {
     return;  // Config complete, ESP will reboot
   }
   
-  // Có config rồi, khởi tạo network với config đã lưu
+  // Có config rồi, khởi tạo network với refresh rate từ settings
   network = new NetworkManager(
     configMgr.getWiFiSSID().c_str(),
     configMgr.getWiFiPassword().c_str(),
     configMgr.getServerURL(),
-    REFRESH_INTERVAL  // Use config value for refresh rate
+    settingsMgr.getRefreshInterval()  // Use saved refresh rate
   );
+  
+  // Init menu manager (after all dependencies ready)
+  menu = new MenuManager(&display, &settingsMgr, &configMgr, &otaWeb);
+  menu->setExitCallback(onMenuExit);  // Force refresh on menu exit
   
   display.showWiFiConnecting();
   
@@ -156,6 +169,16 @@ void loop() {
   // Button ALWAYS active - can reset anytime
   button.update();
   
+  // Update menu (handle timeout)
+  if (menu) {
+    menu->update();
+  }
+  
+  // Nếu đang ở menu mode - skip system info update
+  if (menu && menu->isActive()) {
+    return;
+  }
+  
   // Nếu đang ở OTA mode - handle web server (non-blocking!)
   if (otaWeb.active()) {
     otaWeb.handle();
@@ -173,8 +196,6 @@ void loop() {
     return;
   }
   
-  unsigned long currentMillis = millis();
-  
   // Check WiFi - shouldFallbackToConfig() handles display & reset
   if (!network->isConnected()) {
     if (configMgr.shouldFallbackToConfig()) {
@@ -190,14 +211,20 @@ void loop() {
   #endif
   
   // Update system data (only if WiFi connected and display on)
-  if (display.isOn() && network->shouldUpdate()) {
+  // Force update if menu just exited OR normal refresh interval passed
+  if (display.isOn() && (forceRefreshSystemInfo || network->shouldUpdate())) {
+    // Update network refresh interval from settings (in case changed via menu)
+    network->setUpdateInterval(settingsMgr.getRefreshInterval());
+    
     if (network->fetchSystemData(sysData)) {
       display.displaySystemInfo(sysData);
       configMgr.reportServerSuccess();  // Reset server fail counter
+      forceRefreshSystemInfo = false;   // Clear force refresh flag
     } else {
       // Fetch failed - report to config manager
       DEBUG_PRINTLN(F("[DATA] Failed to fetch system data"));
       configMgr.reportServerFailure();  // Track server failures
+      forceRefreshSystemInfo = false;   // Clear flag even on failure
     }
   }
 }

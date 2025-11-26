@@ -11,7 +11,17 @@ NetworkManager::NetworkManager(const char* wifiSsid, const char* wifiPass, Strin
     lastUpdate(0), updateInterval(interval) {}
 
 bool NetworkManager::connectWiFi(int maxAttempts) {
+  // Always use password from EEPROM
+  #ifdef DEBUG_NETWORK
+  DEBUG_PRINT(F("[NET] Connecting to: "));
+  DEBUG_PRINT(ssid);
+  DEBUG_PRINT(F(" with password (length: "));
+  DEBUG_PRINT(strlen(password));
+  DEBUG_PRINTLN(F(")"));
+  #endif
+  
   WiFi.begin(ssid, password);
+  
   int attempts = 0;
   
   while (WiFi.status() != WL_CONNECTED && attempts < maxAttempts) {

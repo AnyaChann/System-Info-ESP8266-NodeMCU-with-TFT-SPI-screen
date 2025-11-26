@@ -71,6 +71,9 @@ String ConfigPortal::generateServerConfigHTML() {
   html += F("</div>");
   html += F("<button type='submit'>Continue to WiFi Setup</button>");
   html += F("</form>");
+  html += F("<form action='/cancel' method='POST' style='margin-top:12px'>");
+  html += F("<button type='submit' style='background:#6c757d'>Cancel & Restart</button>");
+  html += F("</form>");
   html += F("</div>");
   html += F("</div></body></html>");
   

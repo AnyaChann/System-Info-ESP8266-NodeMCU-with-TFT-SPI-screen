@@ -6,12 +6,20 @@
 #include "config_manager.h"
 #include "config_validator.h"
 #include "display_manager.h"
+#include "button_handler.h"
+
+// ESP8266 WiFi credentials struct
+extern "C" {
+  #include "user_interface.h"
+}
 
 ConfigManager::ConfigManager(const char* apName, const char* apPass)
   : wifiManager(nullptr), server(nullptr), configMode(false), 
     apSSID(apName), apPassword(apPass),
-    tempServerPort(8080), connectionFailCount(0), serverFailCount(0),
-    lastConnectionAttempt(0), lastServerCheck(0), displayManager(nullptr) {
+    tempServerPort(8080), tempWiFiSSID(""), tempWiFiPassword(""),
+    connectionFailCount(0), serverFailCount(0),
+    lastConnectionAttempt(0), lastServerCheck(0), 
+    displayManager(nullptr), buttonHandler(nullptr) {
   storage.clear(config);
 }
 
@@ -40,7 +48,23 @@ bool ConfigManager::saveConfig() {
 void ConfigManager::resetConfig() {
   storage.clear(config);
   saveConfig();
-  DEBUG_PRINTLN(F("[CFG] Config reset!"));
+  DEBUG_PRINTLN(F("[CFG] Config reset (ALL)!"));
+}
+
+void ConfigManager::resetServerConfig() {
+  // Clear server config only, keep WiFi
+  memset(config.serverIP, 0, sizeof(config.serverIP));
+  config.serverPort = 8080;  // Default
+  saveConfig();
+  DEBUG_PRINTLN(F("[CFG] Server config reset (WiFi kept)!"));
+}
+
+void ConfigManager::resetWiFiConfig() {
+  // Clear WiFi config only, keep server
+  memset(config.wifiSSID, 0, sizeof(config.wifiSSID));
+  memset(config.wifiPassword, 0, sizeof(config.wifiPassword));
+  saveConfig();
+  DEBUG_PRINTLN(F("[CFG] WiFi config reset (Server kept)!"));
 }
 
 bool ConfigManager::hasValidConfig() {
@@ -112,19 +136,30 @@ bool ConfigManager::shouldFallbackToConfig() {
     delay(100);
     WiFi.begin(config.wifiSSID, config.wifiPassword);
     
-    // Progressive timeout: 10s->30s
-    int timeout = min(5000 + (connectionFailCount * 5000), 30000);
+    // Progressive timeout: 5s->15s (reduced for better UX)
+    int timeout = min(5000 + (connectionFailCount * 3000), 15000);
     unsigned long startTime = millis();
     int dots = 0;
+    unsigned long lastDisplayUpdate = 0;
     
-    while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeout) {
-      // Update display with dots animation every 500ms
-      if (displayManager && (millis() - startTime) % 500 < 50) {
+    while (WiFi.status() != WL_CONNECTED && millis() - startTime < (unsigned long)timeout) {
+      unsigned long elapsed = millis() - startTime;
+      
+      // Update display every 500ms
+      if (displayManager && elapsed - lastDisplayUpdate > 500) {
+        lastDisplayUpdate = elapsed;
+        
         showReconnectDisplay();
-        // Add animated dots
-        displayManager->drawText(10, 130, "          ", ST77XX_BLACK, 1); // Clear
+        
+        // Show remaining time
+        int remaining = (timeout - elapsed) / 1000;
+        String timeStr = "Timeout: " + String(remaining) + "s";
+        displayManager->drawText(10, 130, timeStr + "     ", ST77XX_YELLOW, 1);
+        
+        // Animated dots
+        displayManager->drawText(10, 145, "          ", ST77XX_BLACK, 1); // Clear
         for (int i = 0; i < (dots % 4); i++) {
-          displayManager->drawText(10 + (i * 10), 130, ".", ST77XX_YELLOW, 2);
+          displayManager->drawText(10 + (i * 10), 145, ".", ST77XX_YELLOW, 2);
         }
         dots++;
       }
@@ -235,10 +270,10 @@ bool ConfigManager::startConfigPortalWithValidation() {
   configMode = true;
   DEBUG_PRINTLN(F("\n[CFG] === CONFIG PORTAL ==="));
   
-  // Step 1: Server config
+  // Step 1: Server IP config FIRST (no WiFi needed, simpler!)
   if (!startServerConfigPortal()) return false;
   
-  // Step 2: WiFi config
+  // Step 2: WiFi config SECOND (more stable without AP conflicts)
   if (!startWiFiConfigPortal()) return false;
   
   // Step 3: Validate server (optional - save anyway if failed)
@@ -264,7 +299,40 @@ bool ConfigManager::startConfigPortalWithValidation() {
   DEBUG_PRINTLN(F("\n[CFG] Step 4: Saving..."));
   setServerIP(tempServerIP.c_str());
   setServerPort(tempServerPort);
-  setWiFiCredentials(WiFi.SSID().c_str(), WiFi.psk().c_str());
+  
+  // Debug: Check what we're saving
+  DEBUG_PRINT(F("[CFG] Temp WiFi SSID: '"));
+  DEBUG_PRINT(tempWiFiSSID);
+  DEBUG_PRINTLN(F("'"));
+  DEBUG_PRINT(F("[CFG] Temp WiFi Password length: "));
+  DEBUG_PRINTLN(tempWiFiPassword.length());
+  DEBUG_PRINT(F("[CFG] WiFi connected: "));
+  DEBUG_PRINTLN(WiFi.status() == WL_CONNECTED ? "YES" : "NO");
+  DEBUG_PRINT(F("[CFG] Server IP: '"));
+  DEBUG_PRINT(tempServerIP);
+  DEBUG_PRINTLN(F("'"));
+  
+  // Validation: SSID must not be empty
+  if (tempWiFiSSID.length() == 0) {
+    DEBUG_PRINTLN(F("[CFG] ERROR: WiFi SSID is empty!"));
+    if (displayManager) {
+      displayManager->clear();
+      displayManager->drawText(10, 50, "ERROR!", ST77XX_RED, 2);
+      displayManager->drawText(5, 80, "WiFi lost!", ST77XX_WHITE, 1);
+      delay(3000);
+    }
+    return false;
+  }
+  
+  // Save BOTH SSID and password to EEPROM
+  // This ensures config persists even if ESP flash gets cleared
+  DEBUG_PRINTLN(F("[CFG] Saving WiFi credentials to EEPROM"));
+  DEBUG_PRINT(F("[CFG] SSID: "));
+  DEBUG_PRINTLN(tempWiFiSSID);
+  DEBUG_PRINT(F("[CFG] Password length: "));
+  DEBUG_PRINTLN(tempWiFiPassword.length());
+  
+  setWiFiCredentials(tempWiFiSSID.c_str(), tempWiFiPassword.c_str());
   
   if (saveConfig()) {
     DEBUG_PRINTLN(F("[CFG] Config saved!"));
@@ -295,67 +363,170 @@ bool ConfigManager::startConfigPortalWithValidation() {
 }
 
 bool ConfigManager::startServerConfigPortal() {
-  DEBUG_PRINTLN(F("[CFG] Step 1: Server Config"));
+  DEBUG_PRINTLN(F("[CFG] Step 2: Server Config"));
   
-  WiFi.mode(WIFI_AP);
+  // Keep current WiFi connection if exists, otherwise start AP
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.mode(WIFI_AP);
+  } else {
+    WiFi.mode(WIFI_AP_STA);  // Both AP and STA mode
+  }
   WiFi.softAP(apSSID, apPassword);
   IPAddress apIP = WiFi.softAPIP();
   
   DEBUG_PRINT(F("[CFG] AP: "));
   DEBUG_PRINTLN(apIP);
   
-  // Show AP info on display (compact and clear)
+  // Show AP info on display (WiFi already connected!)
   if (displayManager) {
     displayManager->clear();
-    displayManager->drawText(15, 15, "IP SETUP", ST77XX_YELLOW, 2);
+    displayManager->drawText(10, 10, "SERVER SETUP", ST77XX_YELLOW, 2);
     
-    displayManager->drawText(5, 50, "WiFi:", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 65, apSSID, ST77XX_CYAN, 1);
-    displayManager->drawText(5, 75, apPassword, ST77XX_CYAN, 1);
+    // Show connected WiFi info
+    displayManager->drawText(5, 40, "WiFi OK:", ST77XX_GREEN, 1);
+    displayManager->drawText(5, 55, WiFi.SSID().c_str(), ST77XX_CYAN, 1);
+    displayManager->drawText(5, 70, WiFi.localIP().toString().c_str(), ST77XX_WHITE, 1);
     
-    displayManager->drawText(5, 90, "Browse for:", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 105, apIP.toString().c_str(), ST77XX_GREEN, 2);
+    displayManager->drawText(5, 90, "Config AP:", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 105, apSSID, ST77XX_YELLOW, 1);
+    
+    displayManager->drawText(5, 125, "Browse:", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 140, apIP.toString().c_str(), ST77XX_GREEN, 1);
+    
+    // Timeout info
+    displayManager->drawText(5, 160, "Timeout: 3min", ST77XX_YELLOW, 1);
   }
   
   if (!server) server = new ESP8266WebServer(80);
   server->on("/", [this]() { handleRoot(); });
   server->on("/server", HTTP_POST, [this]() { handleServerConfig(); });
+  server->on("/cancel", HTTP_POST, [this]() { handleCancel(); });
   server->on("/test", HTTP_GET, [this]() { handleTestServer(); });
   server->on("/status", [this]() { handleStatus(); });
   server->on("/reset", [this]() { handleReset(); });
   server->begin();
   
-  // Wait for config (5 min timeout)
+  // Wait for config with timeout (3 min)
+  const unsigned long TIMEOUT = 180000;  // 3 minutes
   unsigned long startTime = millis();
-  while (millis() - startTime < 300000) {
+  unsigned long lastTimeoutUpdate = 0;
+  
+  // Track button press for exit
+  unsigned long buttonPressStart = 0;
+  bool wasPressed = false;
+  
+  while (millis() - startTime < TIMEOUT) {
     server->handleClient();
+    
+    // Check button for long press (7s) to exit
+    if (buttonHandler) {
+      buttonHandler->update();
+      
+      bool isPressed = buttonHandler->isPressed();
+      
+      // Button just pressed - start timer
+      if (isPressed && !wasPressed) {
+        buttonPressStart = millis();
+        wasPressed = true;
+      }
+      // Button still pressed - check duration
+      else if (isPressed && wasPressed) {
+        unsigned long pressDuration = millis() - buttonPressStart;
+        
+        // Show countdown every second
+        if (pressDuration > 0 && pressDuration % 1000 < 100 && displayManager) {
+          int secondsRemaining = 7 - (pressDuration / 1000);
+          if (secondsRemaining > 0 && secondsRemaining <= 7) {
+            String countStr = "Hold: " + String(secondsRemaining) + "s";
+            displayManager->drawText(15, 160, countStr + "   ", ST77XX_YELLOW, 1);
+          }
+        }
+        
+        // Exit after 7 seconds
+        if (pressDuration >= 7000) {
+          DEBUG_PRINTLN(F("[CFG] Long press detected - Exiting..."));
+          if (displayManager) {
+            displayManager->clear();
+            displayManager->drawText(20, 60, "CANCELLED", ST77XX_RED, 2);
+            displayManager->drawText(30, 95, "Restarting", ST77XX_WHITE, 1);
+          }
+          server->stop();
+          delay(2000);
+          ESP.restart();
+          return false;
+        }
+      }
+      // Button released - reset
+      else if (!isPressed && wasPressed) {
+        wasPressed = false;
+        // Clear countdown text
+        if (displayManager) {
+          displayManager->drawText(15, 160, "           ", ST77XX_BLACK, 1);
+        }
+      }
+    }
+    
+    // Check if config completed
     if (tempServerIP.length() > 0 && tempServerPort > 0) {
       server->stop();
       WiFi.softAPdisconnect(true);
       return true;
     }
+    
+    // Show remaining time every 30 seconds
+    unsigned long elapsed = millis() - startTime;
+    if (elapsed - lastTimeoutUpdate > 30000 && displayManager) {
+      lastTimeoutUpdate = elapsed;
+      int remainingMin = (TIMEOUT - elapsed) / 60000;
+      int remainingSec = ((TIMEOUT - elapsed) % 60000) / 1000;
+      
+      String timeStr = "Timeout: " + String(remainingMin) + "m " + String(remainingSec) + "s";
+      displayManager->drawText(5, 160, timeStr + "     ", ST77XX_YELLOW, 1);
+      
+      DEBUG_PRINT(F("[CFG] Remaining: "));
+      DEBUG_PRINT(remainingMin);
+      DEBUG_PRINT(F("m "));
+      DEBUG_PRINT(remainingSec);
+      DEBUG_PRINTLN(F("s"));
+    }
+    
     delay(10);
   }
   
-  DEBUG_PRINTLN(F("[CFG] Timeout!"));
+  // Timeout occurred
+  DEBUG_PRINTLN(F("[CFG] Server config timeout!"));
+  if (displayManager) {
+    displayManager->clear();
+    displayManager->drawText(20, 60, "TIMEOUT!", ST77XX_RED, 2);
+    displayManager->drawText(30, 95, "Restarting", ST77XX_WHITE, 1);
+  }
+  server->stop();
+  delay(3000);
+  ESP.restart();
   return false;
 }
 
 bool ConfigManager::startWiFiConfigPortal() {
-  DEBUG_PRINTLN(F("\n[CFG] Step 2: WiFi Config"));
+  DEBUG_PRINTLN(F("\n[CFG] Step 1: WiFi Config"));
   
   // Show WiFi config step on display
   if (displayManager) {
     displayManager->clear();
     displayManager->drawText(10, 15, "WIFI SETUP", ST77XX_YELLOW, 2);
+    displayManager->drawText(5, 45, "Connect to:", ST77XX_WHITE, 1);
     
-    displayManager->drawText(5, 50, "Step 1:", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 65, "Reconnect to", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 80, apSSID, ST77XX_CYAN, 1);
+    displayManager->drawText(5, 65, "SSID:", ST77XX_CYAN, 1);
+    displayManager->drawText(5, 80, apSSID, ST77XX_YELLOW, 1);
     
-    displayManager->drawText(5, 90, "Step 2:", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 105, "Select WiFi", ST77XX_WHITE, 1);
-    displayManager->drawText(5, 115, "& Enter Pass", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 100, "Password:", ST77XX_CYAN, 1);
+    displayManager->drawText(5, 115, apPassword, ST77XX_YELLOW, 1);
+    
+    displayManager->drawText(5, 135, "Then config WiFi", ST77XX_WHITE, 1);
+    displayManager->drawText(5, 145, "in browser", ST77XX_WHITE, 1);
+    
+    // Timeout info and button hint
+    displayManager->drawText(5, 160, "Hold BTN 7s to", ST77XX_YELLOW, 1);
+    displayManager->drawText(5, 173, "exit (timeout 3m)", ST77XX_YELLOW, 1);
   }
   
   if (!wifiManager) wifiManager = new WiFiManager();
@@ -363,15 +534,93 @@ bool ConfigManager::startWiFiConfigPortal() {
   // Disable WiFiManager debug output (reduce serial spam)
   wifiManager->setDebugOutput(false);
   
+  // First, disconnect and clear WiFiManager's data (NOT ESP WiFi credentials)
+  // Complete WiFi reset sequence to fix SSID corruption
+  WiFi.persistent(false);      // Don't save during cleanup
+  WiFi.disconnect(true);       // Disconnect and erase STA config
+  WiFi.softAPdisconnect(true); // Disconnect and erase AP config
+  WiFi.mode(WIFI_OFF);         // Turn off WiFi completely
+  delay(1000);                 // Longer delay for complete shutdown
+  
+  // Reset WiFiManager settings (clears WiFiManager's stored data)
   wifiManager->resetSettings();
+  
   wifiManager->setConfigPortalTimeout(180);
   wifiManager->setShowInfoUpdate(true);  // Enable OTA update button on info page
   
+  // Add Exit button to WiFi portal (WiFiManager already has /exit endpoint)
+  String customHtml = F("<style>.c{text-align:center}.btn{padding:12px;border:none;border-radius:8px;font-size:15px;width:100%;margin:8px 0;cursor:pointer;font-weight:600;transition:transform 0.2s}");
+  customHtml += F(".btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:white}");
+  customHtml += F(".btn-secondary{background:#6c757d;color:white}.btn:hover{transform:translateY(-2px)}</style>");
+  customHtml += F("<br/><form action='/exit' method='get'><button class='btn btn-secondary'>Cancel & Restart</button></form>");
+  wifiManager->setCustomHeadElement(customHtml.c_str());
+  
+  // Enable WiFi persistent mode - ESP will auto-save credentials
+  WiFi.persistent(true);
+  WiFi.setAutoConnect(false);  // Don't auto-connect during config portal
+  WiFi.setAutoReconnect(true);
+  
+  DEBUG_PRINT(F("[CFG] Starting portal with SSID: "));
+  DEBUG_PRINTLN(apSSID);
+  DEBUG_PRINT(F("[CFG] Password: "));
+  DEBUG_PRINTLN(apPassword);
+  
   if (wifiManager->startConfigPortal(apSSID, apPassword)) {
-    DEBUG_PRINT(F("[CFG] WiFi: "));
-    DEBUG_PRINT(WiFi.SSID());
+    // Verify WiFi actually connected successfully
+    DEBUG_PRINTLN(F("[CFG] Verifying WiFi connection..."));
+    
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 10) {
+      delay(500);
+      attempts++;
+      DEBUG_PRINT(F("."));
+    }
+    DEBUG_PRINTLN();
+    
+    if (WiFi.status() != WL_CONNECTED) {
+      DEBUG_PRINTLN(F("[CFG] ERROR: WiFi not connected after portal!"));
+      DEBUG_PRINTLN(F("[CFG] Password may be incorrect"));
+      
+      // Clear the bad credentials from ESP flash
+      WiFi.persistent(true);
+      WiFi.disconnect(true);  // Erase saved credentials
+      delay(100);
+      
+      return false;  // Force user to retry
+    }
+    
+    // Store WiFi credentials ONLY after successful connection
+    tempWiFiSSID = WiFi.SSID();
+    
+    DEBUG_PRINT(F("[CFG] WiFi Connected: "));
+    DEBUG_PRINT(tempWiFiSSID);
     DEBUG_PRINT(F(" IP: "));
     DEBUG_PRINTLN(WiFi.localIP());
+    
+    // ALWAYS get password from station_config (most reliable)
+    struct station_config conf;
+    wifi_station_get_config(&conf);
+    conf.password[63] = '\0';  // Ensure null-terminated
+    
+    // Validate password is printable ASCII
+    bool valid = true;
+    for (size_t i = 0; i < strlen((char*)conf.password); i++) {
+      if (conf.password[i] < 32 || conf.password[i] > 126) {
+        valid = false;
+        break;
+      }
+    }
+    
+    if (valid && strlen((char*)conf.password) > 0) {
+      tempWiFiPassword = String(reinterpret_cast<char*>(conf.password));
+      DEBUG_PRINT(F("[CFG] Got password from station_config, length: "));
+      DEBUG_PRINTLN(tempWiFiPassword.length());
+    } else {
+      DEBUG_PRINTLN(F("[CFG] WARNING: Could not get valid password!"));
+      DEBUG_PRINTLN(F("[CFG] Will save to EEPROM anyway for ESP flash fallback"));
+      tempWiFiPassword = "";  // Empty - rely on ESP flash
+    }
+    
     return true;
   }
   
@@ -423,6 +672,26 @@ void ConfigManager::handleStatus() {
   String j = "{\"serverIP\":\"" + tempServerIP + "\",\"serverPort\":" + String(tempServerPort) + 
              ",\"hasServerConfig\":" + (tempServerIP.length() > 0 ? "true" : "false") + "}";
   server->send(200, "application/json", j);
+}
+
+void ConfigManager::handleCancel() {
+  DEBUG_PRINTLN(F("[CFG] User cancelled config"));
+  
+  String html = F("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
+  html += F("<meta name='viewport' content='width=device-width,initial-scale=1'>");
+  html += F("<title>Cancelled</title>");
+  html += F("<style>");
+  html += F("body{font-family:sans-serif;background:#667eea;color:white;text-align:center;padding:50px}");
+  html += F("h1{font-size:24px;margin-bottom:16px}");
+  html += F("p{opacity:0.9}");
+  html += F("</style></head><body>");
+  html += F("<h1>Configuration Cancelled</h1>");
+  html += F("<p>Restarting device...</p>");
+  html += F("</body></html>");
+  
+  server->send(200, "text/html", html);
+  delay(2000);
+  ESP.restart();
 }
 
 void ConfigManager::handleReset() {

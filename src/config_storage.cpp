@@ -33,13 +33,15 @@ bool ConfigStorage::load(ConfigData& config) {
     return false;
   }
   
-  // Check if required fields are filled
+  // Check if required fields are filled (password can be empty - ESP WiFi stack saves it)
   DEBUG_PRINT(F("[STOR] Server IP: "));
   DEBUG_PRINTLN(config.serverIP);
   DEBUG_PRINT(F("[STOR] Server Port: "));
   DEBUG_PRINTLN(config.serverPort);
   DEBUG_PRINT(F("[STOR] WiFi SSID: "));
   DEBUG_PRINTLN(config.wifiSSID);
+  DEBUG_PRINT(F("[STOR] WiFi Password: "));
+  DEBUG_PRINTLN(strlen(config.wifiPassword) > 0 ? "***" : "(empty - using saved)");
   
   if (strlen(config.serverIP) == 0 || strlen(config.wifiSSID) == 0) {
     DEBUG_PRINTLN(F("[STOR] Required fields empty"));

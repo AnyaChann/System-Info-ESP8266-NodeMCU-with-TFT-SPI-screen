@@ -66,41 +66,15 @@ void ButtonHandler::update() {
     
     // Only count clicks if no medium/long press was triggered
     if (!mediumPressTriggered && !longPressTriggered && pressDuration < mediumPressThreshold) {
-      // Multi-click detection
-      if (clickCount == 0) {
-        firstClickTime = now;
+      // Short press - trigger callback immediately (for menu navigation)
+      DEBUG_PRINTLN(F("[BTN] Short press - Menu nav"));
+      if (callback != nullptr) {
+        callback();
       }
       
-      clickCount++;
-      
-      // Check if multi-click window expired
-      if (now - firstClickTime > multiClickWindow) {
-        #ifdef DEBUG_BUTTON
-        DEBUG_PRINTF("[BTN] Window expired - Reset count %d -> 1\n", clickCount);
-        #endif
-        clickCount = 1;
-        firstClickTime = now;
-      }
-      
-      #ifdef DEBUG_BUTTON
-      DEBUG_PRINTF("[BTN] Click %d/%d (window: %lums)\n", clickCount, multiClickThreshold, now - firstClickTime);
-      #endif
-      
-      // Trigger multi-click callback on 3rd click
-      if (clickCount >= multiClickThreshold) {
-        DEBUG_PRINTLN(F("[BTN] 3x click detected - OTA mode"));
-        if (multiClickCallback != nullptr) {
-          multiClickCallback();
-        }
-        clickCount = 0;  // Reset
-      }
+      // REMOVED: Multi-click detection (no longer needed - display toggle disabled)
+      // Menu navigation uses simple short press instead
     }
-  }
-  
-  // Reset click count if window expired
-  if (clickCount > 0 && now - firstClickTime > multiClickWindow) {
-    DEBUG_PRINTLN(F("[BTN] Multi-click timeout - reset"));
-    clickCount = 0;
   }
   
   lastState = reading;

@@ -7,7 +7,7 @@
 #define VERSION_H
 
 // Version information
-#define PROJECT_VERSION "1.9.2"
+#define PROJECT_VERSION "2.2.0"
 #define PROJECT_NAME "HWMonitor"
 #define PROJECT_AUTHOR "AnyaChann - BachTo"
 

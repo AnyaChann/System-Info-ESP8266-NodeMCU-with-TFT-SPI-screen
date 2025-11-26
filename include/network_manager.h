@@ -30,6 +30,10 @@ public:
   bool shouldUpdate();
   void resetUpdateTimer();
   String getLocalIP();
+  
+  // Settings management
+  void setUpdateInterval(unsigned long interval) { updateInterval = interval; }
+  unsigned long getUpdateInterval() const { return updateInterval; }
 };
 
 #endif // NETWORK_MANAGER_H

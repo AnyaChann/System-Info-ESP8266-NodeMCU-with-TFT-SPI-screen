@@ -22,7 +22,9 @@ public:
   void begin();
   bool loadConfig();
   bool saveConfig();
-  void resetConfig();
+  void resetConfig();          // Reset ALL (server + WiFi)
+  void resetServerConfig();    // Reset server only (keep WiFi)
+  void resetWiFiConfig();      // Reset WiFi only (keep server)
   
   // Config data access
   String getServerIP() { return String(config.serverIP); }
@@ -50,6 +52,9 @@ public:
   // Display feedback (optional)
   void setDisplayManager(class DisplayManager* disp) { displayManager = disp; }
   
+  // Button handler for exit via long press
+  void setButtonHandler(class ButtonHandler* btn) { buttonHandler = btn; }
+  
 private:
   // Display helpers
   void showReconnectDisplay();
@@ -76,6 +81,8 @@ private:
   // Validation state
   String tempServerIP;
   uint16_t tempServerPort;
+  String tempWiFiSSID;      // Store WiFi SSID from portal
+  String tempWiFiPassword;  // Store WiFi password from portal
   int connectionFailCount;
   int serverFailCount;
   unsigned long lastConnectionAttempt;
@@ -83,6 +90,7 @@ private:
   
   // Optional display feedback
   class DisplayManager* displayManager;
+  class ButtonHandler* buttonHandler;
   
   // WiFiManager callbacks
   void configModeCallback(WiFiManager *myWiFiManager);
@@ -91,6 +99,7 @@ private:
   // Web handlers for server config
   void handleRoot();
   void handleServerConfig();
+  void handleCancel();
   void handleTestServer();
   void handleStatus();
   void handleReset();
